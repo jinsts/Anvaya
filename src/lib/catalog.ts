@@ -1,9 +1,17 @@
 import { getCollection } from 'astro:content';
 import { paths } from '../data/paths';
-import { validateCatalog } from './path-model';
+import { categories, subjects } from '../data/taxonomy';
+import { pathLessonIds, validateCatalog } from './path-model';
 
 export async function getCatalog() {
   const lessons = await getCollection('lessons');
-  validateCatalog(lessons, paths);
-  return { lessons, paths };
+  validateCatalog(lessons, paths, subjects, categories);
+  const availableSubjects = subjects.filter(
+    (subject) =>
+      lessons.some((lesson) => lesson.data.subject === subject.id) ||
+      paths.some(
+        (path) => path.subject === subject.id && pathLessonIds(path).length > 0,
+      ),
+  );
+  return { lessons, paths, categories, subjects, availableSubjects };
 }

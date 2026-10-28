@@ -10,7 +10,7 @@
 | Project | **Anvaya** |
 | Repository | `anvaya` (new/empty repository) |
 | Document type | Product brief, architecture decision baseline, learning-experience specification, and executable bootstrap plan |
-| Status | **Approved direction; implementation not yet started** |
+| Status | **Foundation implemented; owner lesson review pending. Current progress: [IMPLEMENTATION.md](IMPLEMENTATION.md)** |
 | Initial audience | One personal learner; architecture should remain maintainable and potentially open-sourceable |
 | Date | 2026-10-27 |
 | Initial focus | Data Structures & Algorithms (Arrays first); expandable to Haskell, System Design, Cloud, AI Engineering and more |
@@ -116,6 +116,12 @@ If a feature is not needed to make the **first two lessons excellent**, defer it
 ---
 
 ## 3. Learning experience and information architecture
+
+The owner-approved catalog refinement is recorded in
+[ADR 0003](docs/adr/0003-subject-catalog-and-reference-design.md): category/subject
+discovery is separate from ordered paths, paths may have sections, and canonical
+lessons may be standalone or shared. The initial DSA hierarchy below illustrates
+content, rather than limiting Anvaya to computer science.
 
 ### 3.1 Content hierarchy
 
@@ -755,6 +761,10 @@ Keep the framework generally usable outside the owner's machine, separate brandi
 ---
 
 ## 13. Implementation plan and deliverables
+
+This is the original bootstrap acceptance checklist. Execution status and subsequent
+increments are maintained in [IMPLEMENTATION.md](IMPLEMENTATION.md); unchecked
+boxes below are not a current backlog. Lesson acceptance still requires owner review.
 
 ### Milestone 0 — Discover and plan
 

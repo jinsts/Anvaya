@@ -5,7 +5,8 @@ export const lessonSchema = z
     title: z.string().min(3),
     summary: z.string().min(15),
     subject: z.string().min(2),
-    path: z.string().min(2),
+    // Optional default study context. Membership and ordering belong to paths.
+    path: z.string().min(2).optional(),
     difficulty: z.enum(['foundation', 'intermediate', 'advanced']),
     estimatedMinutes: z.number().int().positive(),
     learningObjectives: z.array(z.string().min(5)).min(1),

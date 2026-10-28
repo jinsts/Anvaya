@@ -31,3 +31,21 @@ Owner review of lesson concepts and independent exercise attempts remain open;
 neither lesson is marked reviewed. Milestone 4 (progress, sync, full-text search,
 offline support and private deployment) remains deferred. Next single lesson to
 consider after studying these drafts: two pointers.
+
+## Design and discovery refinement — 2026-10-28
+
+Owner-approved follow-on: [ADR 0003](docs/adr/0003-subject-catalog-and-reference-design.md).
+
+- [x] Replace the warm green/serif design with cool neutrals, blue accents,
+      compact sans-serif type and coordinated light/dark teaching surfaces.
+- [x] Implement Explore and subject overview using shared category/subject data.
+- [x] Separate global discovery from contextual path sections and lesson outline.
+- [x] Support standalone and shared lessons, preserving canonical URLs and an
+      optional validated path context. Keep both existing lessons as drafts.
+- [x] Finish integrated quality checks, browser review and verification evidence:
+      50 unit/component tests, 28 desktop/mobile browser tests, 16 clean axe scans,
+      type checks, lint, formatting, static build and internal-link validation.
+      See [verification evidence](docs/VERIFICATION.md).
+
+No additional curriculum, learner progress storage, services or remote changes
+are part of this increment. Optional Milestone 4 remains deferred.

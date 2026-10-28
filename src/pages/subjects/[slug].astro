@@ -1,0 +1,266 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import LessonCard from '../../components/learning/LessonCard.astro';
+import Icon from '../../components/ui/Icon.astro';
+import { getCatalog } from '../../lib/catalog';
+import {
+  categoryAncestors,
+  pathLessonIds,
+  pathUrl,
+} from '../../lib/path-model';
+export async function getStaticPaths() {
+  const { subjects } = await getCatalog();
+  return subjects.map((subject) => ({
+    params: { slug: subject.id },
+    props: { subject },
+  }));
+}
+const { subject } = Astro.props;
+const { categories, paths, lessons } = await getCatalog();
+const trail = categoryAncestors(subject.category, categories);
+const subjectPaths = paths.filter(
+  (path) => path.subject === subject.id && pathLessonIds(path).length > 0,
+);
+const subjectLessons = lessons.filter(
+  (lesson) => lesson.data.subject === subject.id,
+);
+---
+
+<BaseLayout title={subject.title} description={subject.description}>
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a href="/explore/">Explore</a>
+    {trail.map((category) => (
+      <>
+        <span aria-hidden="true">/</span>
+        <a href={`/explore/?category=${category.id}`}>{category.title}</a>
+      </>
+    ))}
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">{subject.title}</span>
+  </nav>
+  <header class="subject-hero">
+    <div class="subject-hero-icon" aria-hidden="true">
+      <Icon name="book" size={30} />
+    </div>
+    <div>
+      <span class="eyebrow">Subject overview</span>
+      <h1>{subject.title}</h1>
+      <p class="lede">{subject.description}</p>
+      <div class="subject-stats">
+        <span>
+          <strong>{subjectPaths.length}</strong>{' '}
+          {subjectPaths.length === 1 ? 'learning path' : 'learning paths'}
+        </span>
+        <span>
+          <strong>{subjectLessons.length}</strong>{' '}
+          {subjectLessons.length === 1 ? 'lesson' : 'lessons'}
+        </span>
+        <span>
+          <strong>
+            {subjectLessons.reduce(
+              (total, lesson) => total + lesson.data.estimatedMinutes,
+              0,
+            )}
+          </strong>{' '}
+          min of reading & practice
+        </span>
+      </div>
+    </div>
+  </header>
+  <section aria-labelledby="subject-paths-title">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">Learn with direction</span>
+        <h2 id="subject-paths-title">Learning paths</h2>
+      </div>
+    </div>
+    <p class="section-description muted">
+      Follow a sequence that connects one idea to the next.
+    </p>
+    <div class="card-grid">
+      {subjectPaths.map((path) => {
+        const ids = pathLessonIds(path);
+        const ordered = ids.map((id) =>
+          lessons.find((lesson) => lesson.id === id)!,
+        );
+        return (
+          <a class="panel card-link path-card" href={pathUrl(path.id)}>
+            <div class="path-card-top">
+              <span class="badge">Learning path</span>
+              <span class="muted">
+                {ids.length} {ids.length === 1 ? 'lesson' : 'lessons'}
+              </span>
+            </div>
+            <h3>{path.title}</h3>
+            <p class="muted">{path.description}</p>
+            <ol class="path-preview">
+              {ordered.slice(0, 4).map((lesson) => (
+                <li>{lesson.data.title.split(':')[0]}</li>
+              ))}
+              {ordered.length > 4 && <li>+{ordered.length - 4} more</li>}
+            </ol>
+            <span class="path-card-footer">
+              View learning path <span aria-hidden="true">→</span>
+            </span>
+          </a>
+        );
+      })}
+    </div>
+    {subjectPaths.length === 0 && (
+      <p class="panel muted">
+        There isn’t a guided path for this subject yet. Explore its lessons
+        below.
+      </p>
+    )}
+  </section>
+  <section aria-labelledby="subject-lessons-title">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">Explore at your own pace</span>
+        <h2 id="subject-lessons-title">All lessons</h2>
+      </div>
+      <span class="muted lesson-count">
+        {subjectLessons.length}{' '}
+        {subjectLessons.length === 1 ? 'lesson' : 'lessons'}
+      </span>
+    </div>
+    <div class="card-grid">
+      {subjectLessons.map((lesson) => (
+        <LessonCard lesson={lesson} />
+      ))}
+    </div>
+    {subjectLessons.length === 0 && (
+      <p class="panel muted">
+        Lessons will appear here as your study develops.
+      </p>
+    )}
+  </section>
+  <a class="back-link" href="/explore/">
+    ← Explore all subjects
+  </a>
+</BaseLayout>
+<style>
+  .subject-hero {
+    display: flex;
+    align-items: start;
+    gap: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: linear-gradient(120deg, var(--accent-soft), var(--surface) 70%);
+    padding: 2rem;
+    margin: 1.4rem 0 2rem;
+  }
+  .subject-hero-icon {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--accent);
+    border-radius: 12px;
+    font: 1.6rem var(--font-mono);
+  }
+  h1 {
+    font-size: clamp(1.7rem, 3vw, 2.5rem);
+    margin: 0.6rem 0 0.85rem;
+  }
+  .subject-hero .lede {
+    font-size: 0.95rem;
+    max-width: 70ch;
+  }
+  .subject-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.4rem;
+    color: var(--muted);
+    font-size: 0.78rem;
+    margin-top: 1.5rem;
+  }
+  .subject-stats strong {
+    color: var(--text);
+    margin-right: 0.2rem;
+  }
+  .section-heading {
+    margin-bottom: 0.65rem;
+  }
+  .section-heading h2 {
+    margin-top: 0.4rem;
+  }
+  .section-description {
+    font-size: 0.86rem;
+    margin-bottom: 1.2rem;
+  }
+  .path-card {
+    padding: 1.5rem;
+  }
+  .path-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.75rem;
+  }
+  .path-card h3 {
+    font-size: 1.25rem;
+    margin: 1rem 0 0.6rem;
+  }
+  .path-card p {
+    font-size: 0.87rem;
+    max-width: 65ch;
+  }
+  .path-preview {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 0;
+    margin: 1.2rem 0;
+  }
+  .path-preview li {
+    color: var(--muted);
+    background: var(--subtle);
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.6rem;
+    border-radius: 5px;
+    font-size: 0.73rem;
+  }
+  .path-preview li + li::before {
+    content: '→';
+    color: var(--accent);
+    margin-right: 0.55rem;
+  }
+  .path-card-footer {
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .lesson-count {
+    font-size: 0.78rem;
+  }
+  .back-link {
+    display: inline-block;
+    margin-top: 2rem;
+    font-size: 0.83rem;
+  }
+  @media (max-width: 600px) {
+    .subject-hero {
+      padding: 1.25rem;
+      gap: 0;
+    }
+    .subject-hero-icon {
+      display: none;
+    }
+    .subject-stats {
+      gap: 0.6rem 1rem;
+    }
+    .path-card {
+      padding: 1.2rem;
+    }
+  }
+</style>

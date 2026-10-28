@@ -6,11 +6,16 @@ you actually intend to study; do not pre-generate paths of shallow placeholders.
 1. Add `src/content/lessons/<subject>/<slug>.mdx`. Its collection ID is the nested
    path without `.mdx`, such as `dsa/arrays`.
 2. Supply metadata using the schema in `src/lib/lesson-schema.ts`.
-3. Add the ID to the appropriate ordered path in `src/data/paths.ts`. For a new
-   path add one typed entry there. No shell or routing edits are needed.
-4. Add tested examples/exercises under `labs/<subject>/<slug>/`. Prefer importing
+3. Register the subject and its category in `src/data/taxonomy.ts` if needed.
+   Categories can have a parent; the same model supports any field of study.
+   Add categories when there is something to study, rather than placeholders.
+4. Optionally add the lesson ID to an ordered path in `src/data/paths.ts`. A path
+   uses either `lessons` or `sections: [{ id, title, lessons }]`. Paths can reuse
+   canonical lessons, even across subjects. Set the lesson's optional `path` to
+   its default path; omit it for standalone content. No shell edits are needed.
+5. Add tested examples/exercises under `labs/<subject>/<slug>/`. Prefer importing
    actual source with `?raw` for code displays so examples cannot silently drift.
-5. Run the README quality gate; inspect the actual page at desktop/mobile widths
+6. Run the README quality gate; inspect the actual page at desktop/mobile widths
    and both themes. Draft status stays until genuine owner review.
 
 ## Metadata
@@ -37,6 +42,12 @@ sources:
 This shows syntax, not content to copy unchanged. Use genuine consulted sources.
 `difficulty` is foundation/intermediate/advanced; `status` is
 draft/reviewed/published. Reviewed/published require `reviewedAt` (ISO date).
+Subjects must exist in the taxonomy. A default `path`, when supplied, must
+contain this lesson. Paths own membership and ordering; do not copy a lesson to
+put it into a second sequence. `pathLessonIds()` and `pathSections()` normalize
+flat and sectioned paths. A non-default membership uses `?path=<id>` for its
+sidebar and adjacent lessons; direct links retain the canonical URL.
+
 Prerequisites use canonical IDs, must exist, and cannot form cycles. Stable IDs
 are lowercase kebab-case segments; preserve links when renaming. Sources cannot
 be placeholders. At least one objective and source are required.

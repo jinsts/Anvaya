@@ -3,7 +3,7 @@
 Connect concepts. Build understanding.
 
 A personal engineering learning platform: learn → visualize → experiment →
-practise → recall → revisit. The first foundation contains one substantial Arrays
+practise → recall → revisit. The current library contains one substantial Arrays
 lesson and a smaller Hash Maps sample. Both are drafts awaiting owner review.
 
 The approved architecture and acceptance criteria are in
@@ -68,7 +68,10 @@ the normal quality suite excludes unfinished learner attempts.
 ## Where things live
 
 - `src/content/lessons/`: canonical MDX and metadata.
-- `src/data/paths.ts`: ordered curriculum; navigation and routes derive from it.
+- `src/data/taxonomy.ts`: categories and subjects, including fields beyond computer science.
+- `src/data/paths.ts`: ordered paths and optional sections; canonical lessons can be reused.
+- `/explore/` and `/subjects/<id>/`: subject discovery; `/paths/` provides ordered study.
+- `src/scripts/path-context.ts`: optional validated URL context for shared lessons.
 - `src/layouts/`, `src/components/`: Astro shell/teaching components and one React island.
 - `src/lib/`: pure array logic and catalog validation.
 - `labs/`: exercises, contracts, solutions and reproducible worked examples.

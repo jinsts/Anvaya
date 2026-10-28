@@ -4,149 +4,236 @@ import type { MarkdownHeading } from 'astro';
 import BaseLayout from './BaseLayout.astro';
 import SectionTOC from '../components/learning/SectionTOC.astro';
 import { getCatalog } from '../lib/catalog';
-import { neighbors, lessonUrl, pathUrl } from '../lib/path-model';
+import {
+  neighbors,
+  lessonUrl,
+  pathUrl,
+  subjectUrl,
+  pathLessonIds,
+  categoryAncestors,
+} from '../lib/path-model';
 interface Props {
   lesson: CollectionEntry<'lessons'>;
   headings: MarkdownHeading[];
 }
 const { lesson, headings } = Astro.props;
-const { lessons, paths } = await getCatalog();
-const path = paths.find((path) => path.id === lesson.data.path)!;
-const adjacent = neighbors(path.lessons, lesson.id);
+const { lessons, paths, subjects, categories } = await getCatalog();
+const studyPaths = paths.filter((path) =>
+  pathLessonIds(path).includes(lesson.id),
+);
+const defaultPath =
+  studyPaths.find((path) => path.id === lesson.data.path) ?? studyPaths[0];
+const subject = subjects.find((subject) => subject.id === lesson.data.subject)!;
+const ancestry = categoryAncestors(subject.category, categories);
 const titleOf = (id: string) =>
   lessons.find((item) => item.id === id)!.data.title;
+const contextualUrl = (id: string, pathId: string) =>
+  lessonUrl(
+    id,
+    lessons.find((item) => item.id === id)?.data.path === pathId
+      ? undefined
+      : pathId,
+  );
 ---
 
-<BaseLayout title={lesson.data.title} description={lesson.data.summary}>
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <a href="/paths/">Learning paths</a>
-    <span aria-hidden="true">/</span>
-    <a href={pathUrl(path.id)}>DSA foundations</a>
-    <span aria-hidden="true">/</span>
-    <span>{lesson.data.title.split(':')[0]}</span>
-  </nav>
-  <header class="lesson-hero">
-    <div class="meta">
-      <span class="eyebrow">
-        Foundations · {lesson.data.estimatedMinutes} min read & practice
-      </span>
-      <span class="badge">
-        {lesson.data.status === 'draft'
-          ? 'Draft · awaiting owner review'
-          : lesson.data.status}
-      </span>
-    </div>
-    <h1>{lesson.data.title}</h1>
-    <p class="lede">{lesson.data.summary}</p>
-    <p class="prereqs">
-      <strong>Before you begin:</strong>{' '}
-      {lesson.data.prerequisites.length
-        ? lesson.data.prerequisites.map((id) => (
-            <a href={lessonUrl(id)}>{titleOf(id)}</a>
-          ))
-        : 'Basic variables, loops, and functions. No data structures assumed.'}
-    </p>
-  </header>
-  <div class="lesson-grid">
-    <article class="prose" aria-label={lesson.data.title}>
-      <div class="objectives">
-        <span class="eyebrow">What you’ll be able to do</span>
+<BaseLayout
+  title={lesson.data.title}
+  description={lesson.data.summary}
+  activePath={defaultPath}
+>
+  <div data-default-path={defaultPath?.id}>
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="/explore/">Explore</a>
+      <span aria-hidden="true">/</span>
+      {ancestry.map((category) => (
+        <>
+          <a href={`/explore/?category=${category.id}`}>{category.title}</a>
+          <span aria-hidden="true">/</span>
+        </>
+      ))}
+      <a href={subjectUrl(subject.id)}>{subject.title}</a>
+    </nav>
+    <header class="lesson-hero">
+      <div class="meta">
+        <span class="eyebrow">
+          {lesson.data.difficulty} · {lesson.data.estimatedMinutes} min read &
+          practice
+        </span>
+        <span class="badge review">
+          {lesson.data.status === 'draft'
+            ? 'Draft · awaiting owner review'
+            : lesson.data.status}
+        </span>
+      </div>
+      <h1>{lesson.data.title}</h1>
+      <p class="lede">{lesson.data.summary}</p>
+      {studyPaths.map((path) => (
+        <p
+          class="path-position"
+          data-path-context={path.id}
+          hidden={path.id !== defaultPath?.id}
+        >
+          <a href={pathUrl(path.id)}>{path.title}</a>
+          <span aria-hidden="true"> / </span>Lesson{' '}
+          {pathLessonIds(path).indexOf(lesson.id) + 1} of{' '}
+          {pathLessonIds(path).length}
+        </p>
+      ))}
+    </header>
+    <div class="lesson-grid">
+      <article class="prose" aria-label={lesson.data.title}>
+        <div class="lesson-orientation">
+          <p class="prereqs">
+            <strong>Before you begin</strong>
+            {lesson.data.prerequisites.length
+              ? lesson.data.prerequisites.map((id, index) => (
+                  <>
+                    <span>{index ? ', ' : ' '}</span>
+                    <a href={lessonUrl(id)}>{titleOf(id)}</a>
+                  </>
+                ))
+              : ' No prerequisite lessons. Start here.'}
+          </p>
+          <div class="objectives">
+            <span class="eyebrow">What you’ll be able to do</span>
+            <ul>
+              {lesson.data.learningObjectives.map((objective) => (
+                <li>{objective}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <slot />
+        <h2 id="sources">Sources & further reading</h2>
+        <p class="muted">
+          These references support the models and language caveats. Examples are
+          original and tested locally; this draft still needs owner review.
+        </p>
         <ul>
-          {lesson.data.learningObjectives.map((objective) => (
-            <li>{objective}</li>
+          {lesson.data.sources.map((source) => (
+            <li>
+              <a href={source.url}>{source.label}</a>
+            </li>
           ))}
         </ul>
-      </div>
-      <slot />
-      <h2 id="sources">Sources & further reading</h2>
-      <p class="muted">
-        These references support the models and language caveats. Examples are
-        original and tested locally; this draft still needs owner review.
-      </p>
-      <ul>
-        {lesson.data.sources.map((source) => (
-          <li>
-            <a href={source.url}>{source.label}</a>
-          </li>
-        ))}
-      </ul>
-      <nav class="lesson-pagination" aria-label="Adjacent lessons">
-        {adjacent.previous && (
-          <a href={lessonUrl(adjacent.previous)}>
-            <small>← Previous lesson</small>
-            {titleOf(adjacent.previous)}
-          </a>
-        )}
-        {adjacent.next && (
-          <a href={lessonUrl(adjacent.next)}>
-            <small>Next lesson →</small>
-            {titleOf(adjacent.next)}
-          </a>
-        )}
-      </nav>
-    </article>
-    <aside class="lesson-outline">
-      <SectionTOC
-        headings={[
-          ...headings,
-          { depth: 2, slug: 'sources', text: 'Sources & further reading' },
-        ]}
-      />
-    </aside>
+        {studyPaths.map((path) => {
+          const adjacent = neighbors(pathLessonIds(path), lesson.id);
+          return (
+            <nav
+              class="lesson-pagination"
+              aria-label="Adjacent lessons"
+              data-path-context={path.id}
+              hidden={path.id !== defaultPath?.id}
+            >
+              {adjacent.previous && (
+                <a href={contextualUrl(adjacent.previous, path.id)}>
+                  <small>← Previous lesson</small>
+                  {titleOf(adjacent.previous)}
+                </a>
+              )}
+              {adjacent.next && (
+                <a href={contextualUrl(adjacent.next, path.id)}>
+                  <small>Next lesson →</small>
+                  {titleOf(adjacent.next)}
+                </a>
+              )}
+            </nav>
+          );
+        })}
+      </article>
+      <aside class="lesson-outline">
+        <SectionTOC
+          headings={[
+            ...headings,
+            { depth: 2, slug: 'sources', text: 'Sources & further reading' },
+          ]}
+        />
+      </aside>
+    </div>
   </div>
 </BaseLayout>
+<script>
+  import { initPathContext } from '../scripts/path-context';
+  initPathContext();
+</script>
 <style>
-  .breadcrumbs {
-    display: flex;
-    gap: 0.7rem;
-    flex-wrap: wrap;
-    font-size: 0.76rem;
-    color: var(--muted);
-    margin-bottom: 2rem;
+  .lesson-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 180px;
+    gap: 2.5rem;
+    max-width: 1180px;
   }
-  .breadcrumbs a {
-    text-decoration: none;
+  .prose {
+    max-width: none;
   }
   .lesson-hero {
-    max-width: 980px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(125deg, var(--accent-soft), var(--surface) 78%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
   }
   .lesson-hero h1 {
-    font-size: clamp(2.5rem, 4vw, 4rem);
-    max-width: 19ch;
+    font-size: clamp(1.9rem, 3vw, 2.55rem);
+    margin: 0.8rem 0;
+    letter-spacing: -0.035em;
   }
   .meta {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.7rem;
     flex-wrap: wrap;
   }
-  .prereqs {
-    font-size: 0.85rem;
-    color: var(--muted);
+  .meta .eyebrow {
+    font-size: 0.64rem;
   }
-  .lesson-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 175px;
-    gap: 3rem;
-    max-width: 1120px;
+  .meta .badge {
+    font-size: 0.65rem;
+  }
+  .lede {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+  .path-position {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.73rem;
+  }
+  .path-position a {
+    text-decoration: none;
+  }
+  .lesson-orientation {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    font-size: 0.85rem;
+  }
+  .prereqs {
+    padding: 0.9rem 1.25rem;
+    margin: 0;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .prereqs strong {
+    color: var(--text);
+    margin-right: 0.4rem;
   }
   .objectives {
-    background: var(--accent-soft);
-    border-radius: var(--radius-sm);
-    padding: 1.25rem 1.5rem;
-    font-size: 0.9rem;
+    padding: 1.2rem 1.25rem;
+    border-left: 3px solid var(--accent);
   }
   .objectives ul {
     margin-bottom: 0;
+  }
+  .lesson-outline {
+    min-width: 0;
   }
   .lesson-pagination {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
-    padding-top: 2rem;
+    padding-top: 1.5rem;
     margin-top: 2rem;
     border-top: 1px solid var(--border);
   }
@@ -154,22 +241,32 @@ const titleOf = (id: string) =>
     display: flex;
     flex: 1;
     flex-direction: column;
+    gap: 0.35rem;
     text-decoration: none;
     padding: 1rem;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
+    font-weight: 600;
+  }
+  .lesson-pagination a:hover {
+    border-color: var(--accent);
   }
   .lesson-pagination small {
     color: var(--muted);
+    font-weight: 400;
   }
   @media (max-width: 1150px) {
     .lesson-grid {
       grid-template-columns: minmax(0, 1fr);
-      gap: 1.5rem;
+      gap: 1.2rem;
     }
     .lesson-outline {
       order: -1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1rem;
+      border-radius: var(--radius-sm);
     }
     .lesson-outline :global(.toc) {
       position: static;
@@ -177,7 +274,32 @@ const titleOf = (id: string) =>
     .lesson-outline :global(ol) {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.3rem 1rem;
+      gap: 0.2rem 0.9rem;
+      border: 0;
+      margin-bottom: 0;
+    }
+    .lesson-outline :global(a) {
+      border: 0;
+      padding: 0.25rem 0;
+    }
+  }
+  @media (max-width: 760px) {
+    .lesson-hero {
+      padding: 1.1rem;
+    }
+    .lesson-outline {
+      order: 0;
+    }
+    .lesson-grid {
+      display: flex;
+      flex-direction: column;
+    }
+    .lesson-outline {
+      order: -1;
+    }
+    .lesson-outline :global(ol) {
+      max-height: 110px;
+      overflow-y: auto;
     }
   }
 </style>

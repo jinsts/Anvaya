@@ -1,10 +1,22 @@
-export interface LearningPath {
+export interface PathSection {
+  id: string;
+  title: string;
+  lessons: string[];
+}
+
+interface LearningPathDetails {
   id: string;
   title: string;
   description: string;
   subject: string;
-  lessons: string[];
 }
+
+// Store order once: a short path can be flat, a longer path can group its lessons.
+export type LearningPath = LearningPathDetails &
+  (
+    | { lessons: string[]; sections?: never }
+    | { sections: PathSection[]; lessons?: never }
+  );
 
 export const paths: LearningPath[] = [
   {
@@ -13,6 +25,12 @@ export const paths: LearningPath[] = [
     description:
       'Understand how data is organized. Learn to reason about the work your code does.',
     subject: 'dsa',
-    lessons: ['dsa/arrays', 'dsa/hash-maps'],
+    sections: [
+      {
+        id: 'foundations',
+        title: 'Foundations',
+        lessons: ['dsa/arrays', 'dsa/hash-maps'],
+      },
+    ],
   },
 ];

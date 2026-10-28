@@ -1,0 +1,489 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Icon from '../../components/ui/Icon.astro';
+import { getCatalog } from '../../lib/catalog';
+import {
+  categoryAncestors,
+  pathLessonIds,
+  subjectUrl,
+} from '../../lib/path-model';
+const {
+  categories,
+  availableSubjects: subjects,
+  lessons,
+  paths,
+} = await getCatalog();
+const availablePaths = paths.filter((path) => pathLessonIds(path).length > 0);
+const populated = categories.filter((category) =>
+  subjects.some((subject) =>
+    categoryAncestors(subject.category, categories).some(
+      (ancestor) => ancestor.id === category.id,
+    ),
+  ),
+);
+---
+
+<BaseLayout title="Explore subjects">
+  <header class="page-intro">
+    <span class="eyebrow">Your curiosity, organized</span>
+    <h1>Explore subjects</h1>
+    <p class="lede">
+      Choose a subject to discover its lessons and learning paths. There’s room
+      for every direction your curiosity takes you.
+    </p>
+  </header>
+  <div class="catalog-browser">
+    <nav class="category-panel panel" aria-label="Subject categories">
+      <div class="category-panel-heading">
+        <h2>Categories</h2>
+        <span aria-hidden="true">⌘</span>
+      </div>
+      <a class="all-subjects" href="/explore/" data-select-category="">
+        All subjects <span aria-hidden="true">↗</span>
+      </a>
+      <a href="/explore/" id="category-back" data-select-category="" hidden>
+        ← Back
+      </a>
+      <p id="category-group" class="category-group">
+        Browse a category
+      </p>
+      <div class="category-options">
+        {populated.map((category) => (
+          <a
+            href={`/explore/?category=${category.id}`}
+            data-select-category={category.id}
+            data-category-id={category.id}
+            data-parent={category.parent ?? ''}
+            data-title={category.title}
+            data-description={category.description}
+          >
+            <span>{category.title}</span>
+            <span aria-hidden="true">›</span>
+          </a>
+        ))}
+      </div>
+      <div class="category-note">
+        <span class="eyebrow">Find your next connection</span>
+        <p>
+          Browse by subject, or follow a learning path for a guided sequence.
+        </p>
+        <a href="/paths/">See learning paths →</a>
+      </div>
+    </nav>
+    <section class="subject-results" aria-labelledby="browse-title">
+      <nav
+        class="browse-breadcrumb"
+        id="category-breadcrumb"
+        aria-label="Category breadcrumb"
+      >
+        <span>All subjects</span>
+      </nav>
+      <div class="results-heading">
+        <h2 id="browse-title" tabindex="-1">
+          All subjects
+        </h2>
+        <span id="subject-count" class="muted" role="status">
+          {subjects.length} {subjects.length === 1 ? 'subject' : 'subjects'}
+        </span>
+      </div>
+      <p id="category-description" class="muted category-description">
+        Explore the subjects in your library.
+      </p>
+      <div class="subject-list">
+        {subjects.map((subject) => {
+          const trail = categoryAncestors(subject.category, categories);
+          const subjectLessons = lessons.filter(
+            (lesson) => lesson.data.subject === subject.id,
+          );
+          const subjectPaths = availablePaths.filter(
+            (path) => path.subject === subject.id,
+          );
+          return (
+            <a
+              class="panel card-link subject-card"
+              href={subjectUrl(subject.id)}
+              data-subject-categories={trail
+                .map((category) => category.id)
+                .join(' ')}
+            >
+              <div class="subject-heading">
+                <span class="subject-icon" aria-hidden="true">
+                  <Icon name="book" size={21} />
+                </span>
+                <span class="subject-category">
+                  {trail.map((category) => category.title).join(' / ')}
+                </span>
+                <span class="subject-arrow" aria-hidden="true">
+                  ↗
+                </span>
+              </div>
+              <h3>{subject.title}</h3>
+              <p class="muted">{subject.description}</p>
+              <div class="subject-footer">
+                <span>
+                  {subjectLessons.length}{' '}
+                  {subjectLessons.length === 1 ? 'lesson' : 'lessons'}{' '}
+                  <span aria-hidden="true">·</span> {subjectPaths.length}{' '}
+                  {subjectPaths.length === 1
+                    ? 'learning path'
+                    : 'learning paths'}
+                </span>
+                <span>Explore subject →</span>
+              </div>
+            </a>
+          );
+        })}
+      </div>
+      <p class="panel muted" id="no-subjects" hidden>
+        No subjects in this category yet. Choose another category to keep
+        exploring.
+      </p>
+      <div class="browse-help">
+        <h3>Looking for a particular idea?</h3>
+        <p class="muted">Search across lessons by title, topic, or tag.</p>
+        <a href="/concepts/">Find a concept →</a>
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+<script>
+  const categoryOptions = [
+    ...document.querySelectorAll<HTMLAnchorElement>('[data-category-id]'),
+  ];
+  const categoryById = new Map(
+    categoryOptions.map((option) => [
+      option.dataset.categoryId!,
+      {
+        id: option.dataset.categoryId!,
+        parent: option.dataset.parent ?? '',
+        title: option.dataset.title ?? '',
+        description: option.dataset.description ?? '',
+      },
+    ]),
+  );
+  const cards = [
+    ...document.querySelectorAll<HTMLElement>('[data-subject-categories]'),
+  ];
+  const title = document.querySelector<HTMLElement>('#browse-title');
+  const trail = document.querySelector<HTMLElement>('#category-breadcrumb');
+  const back = document.querySelector<HTMLAnchorElement>('#category-back');
+  const categoryHref = (id: string) =>
+    id ? `/explore/?category=${encodeURIComponent(id)}` : '/explore/';
+  function renderCategory() {
+    const requested =
+      new URLSearchParams(location.search).get('category') ?? '';
+    const selected = categoryById.get(requested);
+    const id = selected?.id ?? '';
+    const children = categoryOptions.filter(
+      (option) => option.dataset.parent === id,
+    );
+    const group = children.length ? id : (selected?.parent ?? '');
+    categoryOptions.forEach((option) => {
+      option.hidden = option.dataset.parent !== group;
+      if (option.dataset.categoryId === id)
+        option.setAttribute('aria-current', 'true');
+      else option.removeAttribute('aria-current');
+    });
+    document
+      .querySelector<HTMLAnchorElement>('.all-subjects')
+      ?.setAttribute('aria-current', id ? 'false' : 'true');
+    const groupLabel = document.querySelector('#category-group');
+    if (groupLabel)
+      groupLabel.textContent = selected
+        ? children.length
+          ? selected.title
+          : 'Related categories'
+        : 'Browse a category';
+    if (back) {
+      back.hidden = !id;
+      back.href = categoryHref(selected?.parent ?? '');
+      back.dataset.selectCategory = selected?.parent ?? '';
+      back.textContent = selected?.parent
+        ? `← ${categoryById.get(selected.parent)?.title ?? 'Back'}`
+        : '← All categories';
+    }
+    if (title) title.textContent = selected?.title ?? 'All subjects';
+    const description = document.querySelector('#category-description');
+    if (description)
+      description.textContent =
+        selected?.description ?? 'Explore the subjects in your library.';
+    let count = 0;
+    cards.forEach((card) => {
+      card.hidden =
+        !!id && !card.dataset.subjectCategories?.split(' ').includes(id);
+      if (!card.hidden) count++;
+    });
+    const status = document.querySelector('#subject-count');
+    if (status)
+      status.textContent = `${count} ${count === 1 ? 'subject' : 'subjects'}`;
+    const empty = document.querySelector<HTMLElement>('#no-subjects');
+    if (empty) empty.hidden = count > 0;
+    if (trail) {
+      trail.replaceChildren();
+      const chain = [];
+      let cursor = selected;
+      while (cursor) {
+        chain.unshift(cursor);
+        cursor = categoryById.get(cursor.parent);
+      }
+      const root = document.createElement('a');
+      root.href = '/explore/';
+      root.dataset.selectCategory = '';
+      root.textContent = 'All subjects';
+      trail.append(root);
+      chain.forEach((category, index) => {
+        const separator = document.createElement('span');
+        separator.textContent = '/';
+        separator.setAttribute('aria-hidden', 'true');
+        trail.append(separator);
+        const item = document.createElement(
+          index === chain.length - 1 ? 'span' : 'a',
+        );
+        item.textContent = category.title;
+        if (item instanceof HTMLAnchorElement) {
+          item.href = categoryHref(category.id);
+          item.dataset.selectCategory = category.id;
+        } else item.setAttribute('aria-current', 'page');
+        trail.append(item);
+      });
+    }
+  }
+  document
+    .querySelector('.catalog-browser')
+    ?.addEventListener('click', (event) => {
+      if (
+        !(event instanceof MouseEvent) ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
+        event.button !== 0
+      )
+        return;
+      const link = (event.target as Element).closest<HTMLAnchorElement>(
+        '[data-select-category]',
+      );
+      if (!link) return;
+      event.preventDefault();
+      history.pushState(null, '', link.href);
+      renderCategory();
+      title?.focus({ preventScroll: true });
+    });
+  window.addEventListener('popstate', renderCategory);
+  renderCategory();
+</script>
+<style>
+  .catalog-browser {
+    display: grid;
+    grid-template-columns: 245px minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+  .category-panel {
+    padding: 1rem;
+    position: sticky;
+    top: var(--sticky-offset);
+    box-shadow: none;
+  }
+  .category-panel-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--muted);
+    padding: 0.2rem 0.5rem 1rem;
+  }
+  .category-panel-heading h2 {
+    font-size: 0.9rem;
+    margin: 0;
+    color: var(--text);
+  }
+  .category-panel a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.7rem 0.6rem;
+    text-decoration: none;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    color: var(--muted);
+  }
+  .category-panel a:hover {
+    background: var(--subtle);
+    color: var(--text);
+  }
+  .category-panel a[aria-current='true'] {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .category-group {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    padding: 1rem 0.5rem 0.3rem;
+    margin-bottom: 0.3rem;
+    border-top: 1px solid var(--border);
+    margin-top: 0.7rem;
+  }
+  #category-back {
+    color: var(--accent);
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+  }
+  .category-note {
+    margin-top: 2rem;
+    border-top: 1px solid var(--border);
+    padding: 1.2rem 0.5rem 0.2rem;
+  }
+  .category-note .eyebrow {
+    font-size: 0.61rem;
+  }
+  .category-note p {
+    font-size: 0.77rem;
+    color: var(--muted);
+    margin: 0.5rem 0;
+  }
+  .category-note a {
+    color: var(--accent);
+    padding-left: 0;
+  }
+  .browse-breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    color: var(--muted);
+    font-size: 0.72rem;
+    min-height: 24px;
+    margin-bottom: 1rem;
+  }
+  .browse-breadcrumb a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .browse-breadcrumb a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+  .results-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+  .results-heading h2 {
+    font-size: 1.35rem;
+    margin: 0;
+  }
+  .results-heading > span {
+    font-size: 0.75rem;
+    flex-shrink: 0;
+  }
+  .category-description {
+    font-size: 0.86rem;
+    margin: 0.6rem 0 1.4rem;
+  }
+  .subject-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+    gap: 1rem;
+  }
+  .subject-card {
+    padding: 1.5rem;
+  }
+  .subject-heading {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+  .subject-icon {
+    display: grid;
+    place-items: center;
+    background: var(--accent-soft);
+    color: var(--accent);
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    font: 1.1rem var(--font-mono);
+    flex-shrink: 0;
+  }
+  .subject-category {
+    color: var(--muted);
+    font-size: 0.7rem;
+  }
+  .subject-arrow {
+    margin-left: auto;
+    color: var(--accent);
+  }
+  .subject-card h3 {
+    font-size: 1.25rem;
+    margin: 1.3rem 0 0.6rem;
+  }
+  .subject-card p {
+    font-size: 0.85rem;
+  }
+  .subject-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+    font-size: 0.74rem;
+    color: var(--muted);
+  }
+  .subject-footer > span:last-child {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .subject-footer span span {
+    padding: 0 0.3rem;
+  }
+  .browse-help {
+    border-top: 1px solid var(--border);
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+  }
+  .browse-help h3 {
+    font-size: 0.95rem;
+    margin: 0 0 0.4rem;
+  }
+  .browse-help p,
+  .browse-help a {
+    font-size: 0.8rem;
+  }
+  [hidden] {
+    display: none !important;
+  }
+  @media (max-width: 1100px) {
+    .catalog-browser {
+      grid-template-columns: 210px minmax(0, 1fr);
+      gap: 1rem;
+    }
+    .subject-card {
+      padding: 1.15rem;
+    }
+  }
+  @media (max-width: 760px) {
+    .catalog-browser {
+      grid-template-columns: 1fr;
+    }
+    .category-panel {
+      position: static;
+    }
+    .category-note {
+      display: none;
+    }
+    .category-panel-heading {
+      padding-bottom: 0.5rem;
+    }
+    .category-group {
+      margin-top: 0.4rem;
+      padding-top: 0.7rem;
+    }
+    .results-heading {
+      align-items: start;
+    }
+  }
+</style>

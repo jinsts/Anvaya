@@ -1,17 +1,73 @@
 ---
 import '../styles/global.css';
 import { getCatalog } from '../lib/catalog';
-import { lessonUrl, pathUrl } from '../lib/path-model';
+import {
+  lessonUrl,
+  pathUrl,
+  pathLessonIds,
+  pathSections,
+  subjectsInCategory,
+} from '../lib/path-model';
+import type { LearningPath } from '../data/paths';
+import Icon from '../components/ui/Icon.astro';
 interface Props {
   title: string;
   description?: string;
+  activePath?: LearningPath;
 }
 const {
   title,
-  description = 'Connect concepts. Build understanding. A personal engineering learning platform.',
+  description = 'Connect concepts. Build understanding. A personal learning library.',
+  activePath,
 } = Astro.props;
-const { lessons, paths } = await getCatalog();
+const {
+  lessons,
+  paths,
+  categories,
+  availableSubjects: subjects,
+} = await getCatalog();
 const current = Astro.url.pathname;
+const currentLesson = lessons.find(
+  (lesson) => lessonUrl(lesson.id) === current,
+);
+const studyPaths = currentLesson
+  ? paths.filter((path) => pathLessonIds(path).includes(currentLesson.id))
+  : activePath
+    ? [activePath]
+    : [];
+const defaultPath =
+  activePath ??
+  studyPaths.find((path) => path.id === currentLesson?.data.path) ??
+  studyPaths[0];
+const visibleCategories = categories.filter(
+  (category) => subjectsInCategory(category.id, subjects, categories).length,
+);
+const navItems = [
+  {
+    href: '/',
+    title: 'Overview',
+    icon: 'home' as const,
+    active: current === '/',
+  },
+  {
+    href: '/explore/',
+    title: 'Explore subjects',
+    icon: 'explore' as const,
+    active: current.startsWith('/explore') || current.startsWith('/subjects'),
+  },
+  {
+    href: '/paths/',
+    title: 'Learning paths',
+    icon: 'path' as const,
+    active: current.startsWith('/paths'),
+  },
+  {
+    href: '/concepts/',
+    title: 'Find a concept',
+    icon: 'search' as const,
+    active: current.startsWith('/concepts'),
+  },
+];
 ---
 
 <!doctype html>
@@ -24,6 +80,7 @@ const current = Astro.url.pathname;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title} · Anvaya</title>
     <script is:inline>
+      document.documentElement.classList.add('js');
       try {
         const theme = localStorage.getItem('anvaya:theme:v1');
         document.documentElement.dataset.theme =
@@ -47,12 +104,49 @@ const current = Astro.url.pathname;
     </a>
     <header class="topbar">
       <a class="brand" href="/" aria-label="Anvaya home">
-        <img src="/favicon.svg" alt="" width="32" height="32" /> Anvaya
-        <span class="brand-note">A place to understand.</span>
+        <img src="/favicon.svg" alt="" width="29" height="29" />
+        Anvaya
       </a>
+      <details class="explore-menu">
+        <summary>
+          Explore <span aria-hidden="true">⌄</span>
+        </summary>
+        <div class="explore-popover">
+          <p class="eyebrow">Your learning library</p>
+          <a class="explore-all" href="/explore/">
+            Explore all subjects <Icon name="arrow" />
+          </a>
+          {visibleCategories
+            .filter((category) => !category.parent)
+            .map((category) => (
+              <div class="explore-group">
+                <a href={`/explore/?category=${category.id}`}>
+                  <Icon name="explore" />
+                  {category.title}
+                  <Icon name="chevron" size={14} />
+                </a>
+              </div>
+            ))}
+        </div>
+      </details>
+      <form class="global-search" role="search" action="/concepts/">
+        <Icon name="search" size={17} />
+        <input
+          type="search"
+          name="q"
+          placeholder="Search your learning library"
+          aria-label="Search all learning"
+        />
+        <button type="submit" aria-label="Search library">
+          <Icon name="arrow" size={16} />
+        </button>
+      </form>
       <div class="header-controls">
+        <a class="mobile-search" href="/concepts/" aria-label="Search library">
+          <Icon name="search" />
+        </a>
         <label class="theme-label">
-          Theme{' '}
+          <span>Theme</span>
           <select id="theme" aria-label="Color theme">
             <option value="system">System</option>
             <option value="light">Light</option>
@@ -64,57 +158,122 @@ const current = Astro.url.pathname;
         </button>
       </div>
     </header>
+    <button
+      class="menu-backdrop"
+      aria-label="Close navigation"
+      hidden
+      tabindex="-1"
+    ></button>
     <aside class="sidebar" id="site-nav">
       <nav aria-label="Main navigation">
-        <p class="nav-heading">Your workspace</p>
-        <a href="/" aria-current={current === '/' ? 'page' : undefined}>
-          <span aria-hidden="true">⌂</span> Overview
-        </a>
-        <a
-          href="/paths/"
-          aria-current={current.startsWith('/paths') ? 'page' : undefined}
-        >
-          <span aria-hidden="true">↗</span> Learning paths
-        </a>
-        <a
-          href="/concepts/"
-          aria-current={current.startsWith('/concepts') ? 'page' : undefined}
-        >
-          <span aria-hidden="true">⌕</span> Find a concept
-        </a>
-        <p class="nav-heading path-heading">Currently exploring</p>
-        {paths.map((path) => (
-          <div class="nav-path">
-            <a href={pathUrl(path.id)} class="path-label">
-              {path.title}
-            </a>
-            {path.lessons.map((id, i) => (
-              <a
-                class="lesson-link"
-                href={lessonUrl(id)}
-                aria-current={current === lessonUrl(id) ? 'page' : undefined}
-              >
-                <span class="lesson-number">
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                {
-                  lessons
-                    .find((lesson) => lesson.id === id)
-                    ?.data.title.split(':')[0]
-                }
-              </a>
-            ))}
-          </div>
+        <p class="nav-heading">Workspace</p>
+        {navItems.map((item) => (
+          <a
+            class="nav-link"
+            href={item.href}
+            aria-current={item.active ? 'page' : undefined}
+          >
+            <Icon name={item.icon} />
+            {item.title}
+          </a>
         ))}
       </nav>
+      {studyPaths.length ? (
+        studyPaths.map((path) => (
+          <div
+            class="path-sidebar"
+            data-path-sidebar={path.id}
+            data-path-context={path.id}
+            hidden={path.id !== defaultPath?.id}
+          >
+            <p class="nav-heading">Learning path</p>
+            <a href={pathUrl(path.id)} class="path-title">
+              {path.title}
+            </a>
+            <p class="path-count">
+              {pathLessonIds(path).length} lessons · At your own pace
+            </p>
+            <nav aria-label={`Lessons in ${path.title}`}>
+              {pathSections(path).map((section) => (
+                <details class="path-section" open>
+                  <summary>{section.title}</summary>
+                  {section.lessons.map((id) => (
+                    <a
+                      class="lesson-link"
+                      href={lessonUrl(
+                        id,
+                        lessons.find((lesson) => lesson.id === id)?.data
+                          .path === path.id
+                          ? undefined
+                          : path.id,
+                      )}
+                      aria-current={
+                        currentLesson?.id === id ? 'page' : undefined
+                      }
+                    >
+                      <span class="lesson-number">
+                        {String(pathLessonIds(path).indexOf(id) + 1).padStart(
+                          2,
+                          '0',
+                        )}
+                      </span>
+                      {
+                        lessons
+                          .find((lesson) => lesson.id === id)
+                          ?.data.title.split(':')[0]
+                      }
+                    </a>
+                  ))}
+                </details>
+              ))}
+            </nav>
+            {studyPaths.length > 1 && (
+              <div class="path-switcher">
+                <label for={`path-switch-${path.id}`}>
+                  Change learning path
+                </label>
+                <select id={`path-switch-${path.id}`} data-path-switch>
+                  {studyPaths.map((option) => (
+                    <option value={option.id} selected={option.id === path.id}>
+                      {option.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <a class="back-to-library" href="/explore/">
+              ← All subjects
+            </a>
+          </div>
+        ))
+      ) : (
+        <nav class="subject-navigation" aria-label="Browse subjects">
+          <p class="nav-heading">Browse by subject</p>
+          {visibleCategories
+            .filter((category) => !category.parent)
+            .map((category) => (
+              <div class="subject-group">
+                <a
+                  class="category-link"
+                  href={`/explore/?category=${category.id}`}
+                >
+                  {category.title}
+                </a>
+              </div>
+            ))}
+          <a class="back-to-library" href="/explore/">
+            View the library <Icon name="arrow" size={15} />
+          </a>
+        </nav>
+      )}
       <div class="sidebar-note">
-        <span class="eyebrow">The learning loop</span>
-        <p>
-          Learn. Explore. Practise.
-          <br />
-          Recall. Come back.
-        </p>
-        <small>Small steps. Lasting understanding.</small>
+        <span class="loop-symbol" aria-hidden="true">
+          ↻
+        </span>
+        <div>
+          <strong>A little, understood well.</strong>
+          <p>Learn. Experiment. Practise. Revisit.</p>
+        </div>
       </div>
     </aside>
     <div class="workspace">
@@ -122,11 +281,8 @@ const current = Astro.url.pathname;
         <slot />
       </main>
       <footer>
-        <span>
-          Anvaya <span aria-hidden="true">/</span> Connect concepts. Build
-          understanding.
-        </span>
-        <span>Made for deliberate learning.</span>
+        <span>Anvaya · Connect concepts. Build understanding.</span>
+        <span>Your personal learning library.</span>
       </footer>
     </div>
     <script>
@@ -150,7 +306,7 @@ const current = Astro.url.pathname;
           try {
             localStorage.setItem('anvaya:theme:v1', select.value);
           } catch {
-            /* Theme still works for this page. */
+            /* Theme still works. */
           }
         });
         system.addEventListener('change', applyTheme);
@@ -158,215 +314,469 @@ const current = Astro.url.pathname;
       }
       const toggle = document.querySelector<HTMLButtonElement>('#menu-toggle');
       const nav = document.querySelector<HTMLElement>('#site-nav');
+      const workspace = document.querySelector<HTMLElement>('.workspace');
+      const backdrop =
+        document.querySelector<HTMLButtonElement>('.menu-backdrop');
+      const mobile = matchMedia('(max-width: 760px)');
       const close = () => {
         toggle?.setAttribute('aria-expanded', 'false');
         nav?.classList.remove('open');
+        if (workspace) workspace.inert = false;
+        if (backdrop) backdrop.hidden = true;
+        document.body.classList.remove('navigation-open');
       };
       toggle?.addEventListener('click', () => {
-        const open = toggle.getAttribute('aria-expanded') !== 'true';
-        toggle.setAttribute('aria-expanded', String(open));
-        nav?.classList.toggle('open', open);
-      });
-      document.addEventListener('keydown', (event) => {
-        if (
-          event.key === 'Escape' &&
-          toggle?.getAttribute('aria-expanded') === 'true'
-        ) {
+        if (toggle.getAttribute('aria-expanded') === 'true') {
           close();
-          toggle.focus();
+          return;
         }
+        toggle.setAttribute('aria-expanded', 'true');
+        nav?.classList.add('open');
+        if (workspace) workspace.inert = mobile.matches;
+        if (backdrop) backdrop.hidden = false;
+        document.body.classList.add('navigation-open');
+        nav?.querySelector<HTMLAnchorElement>('a')?.focus();
       });
+      backdrop?.addEventListener('click', () => {
+        close();
+        toggle?.focus();
+      });
+      mobile.addEventListener('change', close);
       nav
         ?.querySelectorAll('a')
         .forEach((link) => link.addEventListener('click', close));
+      const explore =
+        document.querySelector<HTMLDetailsElement>('.explore-menu');
+      document.addEventListener('click', (event) => {
+        if (event.target instanceof Node && !explore?.contains(event.target))
+          explore?.removeAttribute('open');
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        if (toggle?.getAttribute('aria-expanded') === 'true') {
+          close();
+          toggle.focus();
+        }
+        if (explore?.open) {
+          explore.open = false;
+          explore.querySelector('summary')?.focus();
+        }
+      });
     </script>
   </body>
 </html>
 <style>
   .skip {
     position: fixed;
-    left: 1rem;
     top: -100px;
+    left: 1rem;
     z-index: 100;
-    padding: 0.7rem;
     background: var(--surface);
+    padding: 0.7rem;
   }
   .skip:focus {
-    top: 1rem;
+    top: 0.8rem;
   }
   .topbar {
     position: sticky;
     top: 0;
-    z-index: 20;
+    z-index: 40;
     height: var(--header-height);
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0 2rem;
+    padding: 0 1.5rem;
+    gap: 1.7rem;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    gap: 1rem;
   }
   .brand {
     display: flex;
+    gap: 0.6rem;
     align-items: center;
-    gap: 0.65rem;
-    font-family: var(--font-display);
-    font-size: 1.7rem;
-    font-weight: 600;
+    flex-shrink: 0;
+    font-size: 1.15rem;
+    font-weight: 720;
+    letter-spacing: -0.04em;
     text-decoration: none;
     color: var(--text);
   }
-  .brand-note {
-    border-left: 1px solid var(--border);
-    padding-left: 1.4rem;
-    margin-left: 1rem;
-    font: 0.78rem var(--font-body);
-    color: var(--muted);
+  .explore-menu {
+    position: relative;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: none;
+    flex-shrink: 0;
   }
-  .header-controls {
+  .explore-menu summary {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.6rem;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.86rem;
+    list-style: none;
+    border-radius: 6px;
+    margin: 0;
+  }
+  .explore-menu summary::-webkit-details-marker {
+    display: none;
+  }
+  .explore-menu[open] summary,
+  .explore-menu summary:hover {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .explore-popover {
+    position: absolute;
+    top: calc(100% + 14px);
+    left: 0;
+    width: 335px;
+    padding: 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 12px 30px #0002;
+    max-height: calc(100dvh - 100px);
+    overflow: auto;
+  }
+  .explore-popover a {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    text-decoration: none;
+    font-size: 0.86rem;
+    padding: 0.6rem;
+    border-radius: 5px;
+  }
+  .explore-popover a:hover {
+    background: var(--subtle);
+  }
+  .explore-popover .eyebrow {
+    margin-bottom: 0.5rem;
+    font-size: 0.65rem;
+  }
+  .explore-all {
+    justify-content: space-between;
+    font-weight: 650;
+  }
+  .explore-group {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
+  }
+  .explore-group > a:first-child {
+    color: var(--muted);
+    font-size: 0.75rem;
+  }
+  .global-search {
+    display: flex;
+    align-items: center;
+    width: min(450px, 40vw);
+    gap: 0.6rem;
+    padding-left: 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--bg);
+    color: var(--muted);
+  }
+  .global-search:focus-within {
+    border-color: var(--accent);
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .global-search input {
+    border: 0;
+    outline: none;
+    background: none;
+    width: 100%;
+    min-width: 0;
+    padding: 0.55rem 0;
+    font-size: 0.8rem;
+  }
+  .global-search input::placeholder {
+    color: var(--muted);
+    opacity: 1;
+  }
+  .global-search button {
+    display: grid;
+    place-items: center;
+    border: 0;
+    background: none;
+    min-height: 36px;
+    padding: 0.5rem 0.7rem;
+  }
+  .header-controls {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
   }
   .theme-label {
     display: flex;
+    gap: 0.6rem;
     align-items: center;
-    gap: 0.65rem;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--muted);
   }
-  select {
-    padding: 0.4rem;
+  .theme-label select {
+    padding: 0.4rem 0.45rem;
+    min-height: 36px;
+    font-size: 0.78rem;
+    background: var(--bg);
   }
-  #menu-toggle {
+  #menu-toggle,
+  .mobile-search {
     display: none;
   }
   .sidebar {
     position: fixed;
     top: var(--header-height);
-    left: 0;
     bottom: 0;
     width: var(--sidebar-width);
+    padding: 1.6rem 1rem 1rem;
     display: flex;
     flex-direction: column;
-    padding: 2rem 1rem;
-    border-right: 1px solid var(--border);
-    background: var(--bg);
     overflow-y: auto;
-  }
-  nav a {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    color: var(--muted);
-    font-size: 0.86rem;
-    padding: 0.65rem 0.8rem;
-    text-decoration: none;
-    border-radius: var(--radius-sm);
-  }
-  nav a:hover,
-  nav a[aria-current='page'] {
-    background: var(--accent-soft);
-    color: var(--accent);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
   }
   .nav-heading {
-    margin: 0 0.8rem 0.75rem;
+    margin: 0 0.65rem 0.6rem;
     font-size: 0.64rem;
-    letter-spacing: 0.12em;
+    font-weight: 650;
+    letter-spacing: 0.085em;
     text-transform: uppercase;
     color: var(--muted);
   }
-  .path-heading {
-    margin-top: 2.5rem;
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.6rem 0.65rem;
+    margin: 0.15rem 0;
+    color: var(--muted);
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.82rem;
   }
-  nav .path-label {
-    font-size: 0.78rem;
+  .nav-link:hover,
+  .nav-link[aria-current] {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .nav-link[aria-current] {
     font-weight: 600;
+  }
+  .subject-navigation,
+  .path-sidebar {
+    margin-top: 1.6rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--border);
+  }
+  .category-link {
+    display: block;
+    color: var(--muted);
+    padding: 0.5rem 0.65rem;
+    font-size: 0.75rem;
+    text-decoration: none;
+  }
+  .nav-subject {
+    display: block;
+    padding: 0.5rem 0.65rem 0.5rem 1.35rem;
+    border-left: 1px solid var(--border);
+    margin: 0.2rem 0 0.4rem 0.65rem;
+    font-size: 0.8rem;
     color: var(--text);
+    text-decoration: none;
+  }
+  .nav-subject[aria-current],
+  .nav-subject:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .back-to-library {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin: 1.3rem 0.65rem 0;
+    color: var(--muted);
+    font-size: 0.76rem;
+    text-decoration: none;
+  }
+  .back-to-library:hover {
+    color: var(--accent);
+  }
+  .path-title {
+    display: block;
+    padding: 0.25rem 0.65rem;
+    color: var(--text);
+    font-size: 0.88rem;
+    font-weight: 650;
+    text-decoration: none;
+  }
+  .path-count {
+    font-size: 0.7rem;
+    margin: 0.35rem 0.65rem 1rem;
+    color: var(--muted);
+  }
+  .path-section {
+    padding: 0;
+    margin: 0.4rem 0;
+    border: 0;
+    background: none;
+  }
+  .path-section summary {
+    padding: 0.55rem 0.65rem;
+    font-size: 0.76rem;
+    color: var(--muted);
+    margin-bottom: 0.2rem;
+  }
+  .lesson-link {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.65rem 0.6rem;
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 0.8rem;
+    border-radius: 5px;
+    border-left: 2px solid transparent;
+  }
+  .lesson-link[aria-current],
+  .lesson-link:hover {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-left-color: var(--accent);
   }
   .lesson-number {
-    color: var(--muted);
-    font: 0.7rem var(--font-mono);
+    font: 0.67rem var(--font-mono);
+  }
+  .path-switcher {
+    margin: 1rem 0.65rem;
+  }
+  .path-switcher label {
+    display: block;
+    font-size: 0.72rem;
+    margin-bottom: 0.5rem;
+  }
+  .path-switcher select {
+    width: 100%;
+    font-size: 0.75rem;
   }
   .sidebar-note {
+    display: flex;
+    align-items: start;
+    gap: 0.6rem;
     margin-top: auto;
-    padding: 3rem 0.8rem 0;
-    font-size: 0.83rem;
+    padding: 3rem 0.65rem 0.5rem;
+    font-size: 0.68rem;
+    color: var(--muted);
+  }
+  .sidebar-note strong {
+    font-weight: 550;
   }
   .sidebar-note p {
-    margin: 0.7rem 0;
+    font-size: 0.65rem;
+    margin: 0.3rem 0 0;
+    line-height: 1.6;
   }
-  .sidebar-note small {
-    color: var(--muted);
-    font-size: 0.7rem;
+  .loop-symbol {
+    color: var(--accent);
+    font-size: 1.2rem;
+    line-height: 1;
   }
   .workspace {
     margin-left: var(--sidebar-width);
     min-width: 0;
   }
   main {
-    padding: clamp(1.25rem, 4vw, 4rem);
-    max-width: 1500px;
-    min-height: calc(100vh - 180px);
+    padding: clamp(1.25rem, 3vw, 3rem);
+    max-width: 1440px;
     margin: auto;
+    min-width: 0;
+    min-height: calc(100dvh - 140px);
     outline: none;
   }
   footer {
-    border-top: 1px solid var(--border);
-    padding: 1.5rem 3rem;
-    color: var(--muted);
-    font-size: 0.72rem;
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     gap: 1rem;
-    flex-wrap: wrap;
+    padding: 1.3rem 2.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.7rem;
+  }
+  .menu-backdrop {
+    position: fixed;
+    z-index: 29;
+    inset: var(--header-height) 0 0;
+    width: 100%;
+    background: #06132666;
+    border: 0;
+    border-radius: 0;
   }
   @media (max-width: 1000px) {
-    :root {
-      --sidebar-width: 200px;
+    .topbar {
+      gap: 1rem;
     }
-    .brand-note {
+    .theme-label > span {
       display: none;
+    }
+    :root {
+      --sidebar-width: 225px;
     }
   }
   @media (max-width: 760px) {
     .topbar {
-      padding: 0 1.2rem;
+      padding: 0 1rem;
+      gap: 0.7rem;
     }
     .brand {
-      font-size: 1.45rem;
+      font-size: 1.1rem;
+      gap: 0.5rem;
     }
-    .brand img {
-      width: 28px;
+    .global-search,
+    .explore-menu {
+      display: none;
     }
-    .theme-label {
-      font-size: 0;
+    .mobile-search {
+      display: grid;
+      place-items: center;
+      min-height: 36px;
+      min-width: 30px;
+      color: var(--muted);
     }
-    .theme-label select {
-      font-size: 0.8rem;
-    }
-    #menu-toggle {
+    :global(.js) #menu-toggle {
       display: block;
-      font-size: 0.8rem;
+      min-height: 36px;
+      padding: 0.45rem 0.6rem;
+      font-size: 0.75rem;
     }
     .sidebar {
-      display: none;
-      width: min(320px, 90vw);
-      box-shadow: var(--shadow);
-      z-index: 19;
+      position: static;
+      width: auto;
+      border-right: 0;
+      border-bottom: 1px solid var(--border);
     }
-    .sidebar.open {
+    :global(.js) .sidebar {
+      display: none;
+      position: fixed;
+      width: min(320px, calc(100vw - 24px));
+      z-index: 30;
+      box-shadow: 12px 0 30px #0002;
+    }
+    :global(.js) .sidebar.open {
       display: flex;
     }
     .workspace {
       margin-left: 0;
     }
-    main {
-      padding-top: 2rem;
-    }
     footer {
-      padding: 1.5rem;
+      padding: 1.3rem;
+    }
+    .sidebar-note {
+      padding-top: 2rem;
     }
   }
   @media print {

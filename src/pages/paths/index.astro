@@ -1,34 +1,86 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getCatalog } from '../../lib/catalog';
-import { pathUrl } from '../../lib/path-model';
-const { paths } = await getCatalog();
+import { pathLessonIds, pathUrl, subjectUrl } from '../../lib/path-model';
+const { paths, subjects } = await getCatalog();
 ---
 
 <BaseLayout title="Learning paths">
   <header class="page-intro">
     <span class="eyebrow">Learn with direction</span>
-    <h1>
-      One connection
-      <br />
-      at a time.
-    </h1>
+    <h1>Learning paths</h1>
     <p class="lede">
       Follow a thoughtful sequence. Build the mental model before adding the
       next layer.
     </p>
   </header>
   <div class="card-grid">
-    {paths.map((path) => (
-      <a class="panel card-link" href={pathUrl(path.id)}>
-        <span class="eyebrow">Foundations · {path.lessons.length} lessons</span>
-        <h3>{path.title}</h3>
-        <p class="muted">{path.description}</p>
-        <span>Explore the path →</span>
-      </a>
-    ))}
+    {paths.map((path) => {
+      const subject = subjects.find((item) => item.id === path.subject)!;
+      return (
+        <section class="panel path-panel">
+          <span class="eyebrow">{pathLessonIds(path).length} lessons</span>
+          <h2>
+            <a href={pathUrl(path.id)}>{path.title}</a>
+          </h2>
+          <p class="muted">{path.description}</p>
+          <div class="path-footer">
+            <a href={subjectUrl(subject.id)}>{subject.title}</a>
+            <a href={pathUrl(path.id)}>Explore the path →</a>
+          </div>
+        </section>
+      );
+    })}
   </div>
-  <p class="muted" style="margin-top: 2rem">
-    More paths will grow from real study. Start with this foundation.
-  </p>
+  {paths.length === 0 && (
+    <p class="panel muted">
+      There aren’t any learning paths yet. You can still browse individual
+      subjects.
+    </p>
+  )}
+  <div class="browse-prompt">
+    <p class="muted">Prefer to follow your own curiosity?</p>
+    <a href="/explore/">Explore all subjects →</a>
+  </div>
 </BaseLayout>
+<style>
+  .path-panel {
+    padding: 1.5rem;
+  }
+  .path-panel h2 {
+    font-size: 1.3rem;
+    margin: 0.8rem 0;
+  }
+  .path-panel h2 a {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .path-panel h2 a:hover {
+    color: var(--accent);
+  }
+  .path-panel p {
+    font-size: 0.88rem;
+  }
+  .path-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.78rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+  .path-footer a:first-child {
+    color: var(--muted);
+  }
+  .browse-prompt {
+    border-top: 1px solid var(--border);
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    font-size: 0.85rem;
+  }
+  .browse-prompt p {
+    margin-bottom: 0.4rem;
+  }
+</style>

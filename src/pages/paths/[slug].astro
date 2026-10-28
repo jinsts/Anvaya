@@ -2,50 +2,174 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import LessonCard from '../../components/learning/LessonCard.astro';
 import { getCatalog } from '../../lib/catalog';
-import { lessonUrl } from '../../lib/path-model';
+import {
+  lessonUrl,
+  pathLessonIds,
+  pathSections,
+  subjectUrl,
+} from '../../lib/path-model';
 export async function getStaticPaths() {
   const { paths } = await getCatalog();
   return paths.map((path) => ({ params: { slug: path.id }, props: { path } }));
 }
 const { path } = Astro.props;
-const { lessons } = await getCatalog();
-const ordered = path.lessons.map((id: string) =>
-  lessons.find((lesson) => lesson.id === id)!,
-);
+const { lessons, subjects } = await getCatalog();
+const subject = subjects.find((item) => item.id === path.subject)!;
+const ids = pathLessonIds(path);
+const ordered = ids.map((id) => lessons.find((lesson) => lesson.id === id)!);
+const sections = pathSections(path);
+const first = ordered[0];
+const firstUrl =
+  first &&
+  lessonUrl(first.id, first.data.path === path.id ? undefined : path.id);
 ---
 
-<BaseLayout title={path.title}>
-  <header class="page-intro">
-    <a href="/paths/">← All learning paths</a>
-    <p class="eyebrow" style="margin-top: 2rem">
-      Path 01 / Foundations
-    </p>
+<BaseLayout title={path.title} activePath={path}>
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a href="/explore/">Explore</a>
+    <span aria-hidden="true">/</span>
+    <a href={subjectUrl(subject.id)}>{subject.title}</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">Learning path</span>
+  </nav>
+  <header class="page-intro path-hero">
+    <span class="eyebrow">Learning path</span>
     <h1>{path.title}</h1>
     <p class="lede">{path.description}</p>
-    <div class="actions">
+    <div class="path-meta">
       <span class="badge">{ordered.length} lessons</span>
-      <span class="badge">
+      <span>
+        {sections.length} {sections.length === 1 ? 'section' : 'sections'}
+      </span>
+      <span>
         {ordered.reduce((sum, lesson) => sum + lesson.data.estimatedMinutes, 0)}{' '}
         minutes of learning & practice
       </span>
     </div>
+    {firstUrl && (
+      <a class="button" href={firstUrl}>
+        Begin the path →
+      </a>
+    )}
   </header>
-  <section class="panel">
-    <span class="eyebrow">Before you start</span>
-    <p>
-      Bring basic TypeScript familiarity: variables, functions, and loops. Start
-      with Arrays; Hash Maps builds on that indexed-storage model.
-    </p>
-    <a class="button" href={lessonUrl(ordered[0]!.id)}>
-      Begin the path →
-    </a>
+  <section
+    class="path-orientation panel"
+    aria-labelledby="path-orientation-title"
+  >
+    <div class="orientation-icon" aria-hidden="true">
+      ↗
+    </div>
+    <div>
+      <h2 id="path-orientation-title">A clear route through the ideas</h2>
+      <p class="muted">
+        Work through the lessons in order, explore their examples, and make time
+        for practice. Each lesson lists what you’ll need before you begin.
+      </p>
+    </div>
   </section>
-  <div class="section-heading">
-    <h2>Your route through the ideas</h2>
-  </div>
-  <div class="card-grid">
-    {ordered.map((lesson, i) => (
-      <LessonCard lesson={lesson} number={i + 1} />
-    ))}
-  </div>
+  {sections.map((section, sectionIndex) => (
+    <section class="path-section" aria-labelledby={`section-${section.id}`}>
+      <div class="section-heading">
+        <div class="section-label">
+          <span class="section-number" aria-hidden="true">
+            {String(sectionIndex + 1).padStart(2, '0')}
+          </span>
+          <div>
+            <span class="eyebrow">Section {sectionIndex + 1}</span>
+            <h2 id={`section-${section.id}`}>{section.title}</h2>
+          </div>
+        </div>
+        <span class="muted section-count">
+          {section.lessons.length}{' '}
+          {section.lessons.length === 1 ? 'lesson' : 'lessons'}
+        </span>
+      </div>
+      <div class="card-grid">
+        {section.lessons.map((id) => (
+          <LessonCard
+            lesson={lessons.find((lesson) => lesson.id === id)!}
+            number={ids.indexOf(id) + 1}
+            pathId={path.id}
+          />
+        ))}
+      </div>
+    </section>
+  ))}
+  <a class="all-paths" href="/paths/">
+    ← All learning paths
+  </a>
 </BaseLayout>
+<style>
+  .path-hero {
+    max-width: 880px;
+    margin-top: 1.75rem;
+  }
+  .path-hero h1 {
+    font-size: clamp(1.9rem, 3.5vw, 2.7rem);
+  }
+  .path-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.8rem 1.2rem;
+    color: var(--muted);
+    font-size: 0.78rem;
+    margin: 1.3rem 0 1.5rem;
+  }
+  .path-orientation {
+    display: flex;
+    align-items: start;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--accent-soft);
+    box-shadow: none;
+  }
+  .orientation-icon {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    color: var(--accent);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+  }
+  .path-orientation h2 {
+    font-size: 0.95rem;
+    margin: 0.2rem 0 0.5rem;
+  }
+  .path-orientation p {
+    font-size: 0.84rem;
+    margin-bottom: 0;
+    max-width: 80ch;
+  }
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .section-number {
+    font: 0.9rem var(--font-mono);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    border-radius: 7px;
+  }
+  .section-heading h2 {
+    margin: 0.3rem 0 0;
+    font-size: 1.3rem;
+  }
+  .section-count {
+    font-size: 0.76rem;
+  }
+  .all-paths {
+    display: inline-block;
+    margin-top: 2rem;
+    font-size: 0.83rem;
+  }
+</style>

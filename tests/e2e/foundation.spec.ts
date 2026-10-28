@@ -207,6 +207,14 @@ test('themes persist, system changes, reduced motion, narrow layout and a11y', a
     await page
       .getByRole('combobox', { name: 'Color theme' })
       .selectOption(theme);
+    expect(
+      await page.evaluate(
+        () =>
+          document
+            .getAnimations()
+            .filter((animation) => animation.playState === 'running').length,
+      ),
+    ).toBe(0);
     await page.screenshot({
       path: info.outputPath(`home-${theme}.png`),
       fullPage: true,
@@ -286,11 +294,12 @@ test('concept filtering, quiz feedback, and mobile navigation', async ({
   page,
 }, info) => {
   await page.goto('/concepts/');
-  await page.getByRole('searchbox').fill('memory');
+  const search = page.getByRole('main').getByRole('searchbox');
+  await search.fill('memory');
   await expect(page.locator('#search-status')).toHaveText('1 lesson');
-  await page.getByRole('searchbox').fill('nonexistent');
+  await search.fill('nonexistent');
   await expect(page.locator('#empty')).toBeVisible();
-  await page.getByRole('searchbox').fill('keys');
+  await search.fill('keys');
   await expect(page.locator('#search-status')).toHaveText('1 lesson');
   await page.goto(arrays);
   const quiz = page.locator('[data-quiz]');
