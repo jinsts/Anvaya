@@ -1,0 +1,308 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import LessonCard from '../components/learning/LessonCard.astro';
+import { getCatalog } from '../lib/catalog';
+import { lessonUrl, pathUrl } from '../lib/path-model';
+const { lessons, paths } = await getCatalog();
+const featured = paths[0]!;
+const first = lessons.find((lesson) => lesson.id === featured.lessons[0])!;
+---
+
+<BaseLayout title="Your learning workspace">
+  <div class="welcome-line">
+    <span class="eyebrow">Your personal learning workspace</span>
+    <span class="edition">FOUNDATION / 01</span>
+  </div>
+  <section class="home-hero">
+    <div>
+      <h1>
+        Connect concepts.
+        <br />
+        <em>Build understanding.</em>
+      </h1>
+      <p class="lede">
+        Go beyond knowing the answer. Explore the mechanism, test your
+        intuition, and make the idea your own.
+      </p>
+      <div class="actions">
+        <a class="button" href={lessonUrl(first.id)}>
+          Start with Arrays <span aria-hidden="true">↗</span>
+        </a>
+        <a class="button secondary" href="/paths/">
+          Explore learning paths
+        </a>
+      </div>
+      <p class="hero-note">
+        A little theory. A working model. Something to try.
+      </p>
+    </div>
+    <figure class="hero-model" aria-label="Array mental model preview">
+      <div class="model-label">
+        <span class="eyebrow">One idea, made tangible</span>
+        <span class="model-dot" aria-hidden="true"></span>
+      </div>
+      <p class="model-code">const idea = [12, 24, 36, 48]</p>
+      <div class="preview-cells">
+        {[12, 24, 36, 48].map((value, i) => (
+          <div class:list={['preview-cell', { selected: i === 2 }]}>
+            <small>index {i}</small>
+            <strong>{value}</strong>
+            {i === 2 && (
+              <span class="pointer" aria-hidden="true">
+                ↑
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+      <div class="model-explanation">
+        <span class="badge">O(1)</span>
+        <p>
+          A known index points straight to a value.
+          <br />
+          <span class="muted">No need to visit every cell.</span>
+        </p>
+      </div>
+      <figcaption>Understand the model. Then test its limits.</figcaption>
+    </figure>
+  </section>
+  <section class="continue-panel panel" aria-labelledby="continue-title">
+    <div class="continue-icon" aria-hidden="true">
+      ↗
+    </div>
+    <div>
+      <span class="eyebrow">Continue learning</span>
+      <h2 id="continue-title">Your first connection starts here.</h2>
+      <p class="muted">
+        Begin with indexed storage, then see what changes when you need to find
+        a value by a key.
+      </p>
+    </div>
+    <a href={pathUrl(featured.id)} class="button secondary">
+      Open DSA foundations →
+    </a>
+  </section>
+  <div class="section-heading">
+    <h2>A foundation to build on</h2>
+    <a href={pathUrl(featured.id)}>View the path →</a>
+  </div>
+  <div class="path-context">
+    <span class="eyebrow">01 / Data Structures & Algorithms</span>
+    <p class="muted">Two connected lessons. One deliberate starting point.</p>
+  </div>
+  <div class="card-grid">
+    {featured.lessons.map((id, i) => (
+      <LessonCard
+        lesson={lessons.find((lesson) => lesson.id === id)!}
+        number={i + 1}
+      />
+    ))}
+  </div>
+  <section class="learning-note">
+    <span class="eyebrow">Built for understanding</span>
+    <div>
+      <h2>
+        Learn it. Try it.
+        <br />
+        Explain it back.
+      </h2>
+      <p class="muted">
+        Every lesson connects a mental model to an experiment, a local exercise,
+        and a short recap. Take your time. The goal is understanding you can
+        return to.
+      </p>
+    </div>
+  </section>
+</BaseLayout>
+<style>
+  .welcome-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+  .edition {
+    color: var(--muted);
+    font: 0.65rem var(--font-mono);
+    letter-spacing: 0.1em;
+  }
+  .home-hero {
+    display: grid;
+    grid-template-columns: 1.25fr 1fr;
+    gap: 2rem;
+    align-items: center;
+    padding: 2rem 0 3rem;
+  }
+  h1 {
+    font-size: clamp(2.6rem, 4.1vw, 4.8rem);
+  }
+  h1 em {
+    font-weight: 400;
+    color: var(--accent);
+  }
+  .hero-note {
+    font: 0.75rem var(--font-mono);
+    color: var(--muted);
+    margin-top: 1.5rem;
+  }
+  .hero-model {
+    border: 1px solid var(--border);
+    background: var(--subtle);
+    border-radius: var(--radius);
+    margin: 0;
+    padding: 1.5rem;
+    transform: rotate(-1deg);
+  }
+  .model-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .model-label .eyebrow {
+    font-size: 0.6rem;
+  }
+  .model-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .model-code {
+    font: 0.75rem var(--font-mono);
+    color: var(--muted);
+    margin: 2.5rem 0 1rem;
+  }
+  .preview-cells {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.4rem;
+    padding-bottom: 2rem;
+  }
+  .preview-cell {
+    position: relative;
+    text-align: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.65rem 0.25rem;
+  }
+  .preview-cell small {
+    display: block;
+    font: 0.6rem var(--font-mono);
+    color: var(--muted);
+  }
+  .preview-cell strong {
+    font: 1.8rem var(--font-display);
+  }
+  .selected small {
+    color: var(--text);
+  }
+  .selected {
+    background: var(--diagram-active);
+    color: var(--text);
+    border-color: var(--accent);
+  }
+  .pointer {
+    position: absolute;
+    top: 100%;
+    left: 45%;
+    color: var(--accent);
+    font-size: 1.4rem;
+  }
+  .model-explanation {
+    display: flex;
+    align-items: start;
+    gap: 0.8rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+  .model-explanation p {
+    font-size: 0.76rem;
+    margin: 0;
+  }
+  figcaption {
+    font: italic 0.8rem var(--font-display);
+    color: var(--muted);
+    margin-top: 1.5rem;
+  }
+  .continue-panel {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    box-shadow: none;
+  }
+  .continue-icon {
+    display: grid;
+    place-items: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 1.6rem;
+    flex-shrink: 0;
+  }
+  .continue-panel h2 {
+    font-size: 1.65rem;
+    margin: 0.5rem 0;
+  }
+  .continue-panel p {
+    margin: 0;
+    font-size: 0.85rem;
+  }
+  .continue-panel .button {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 0.8rem;
+  }
+  .path-context p {
+    font-size: 0.85rem;
+    margin: 0.5rem 0 1.5rem;
+  }
+  .learning-note {
+    margin: 4rem 0 1rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+  }
+  .learning-note > div {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 1rem;
+  }
+  .learning-note p {
+    max-width: 48ch;
+    font-size: 0.9rem;
+  }
+  @media (max-width: 1200px) {
+    .home-hero {
+      grid-template-columns: 1fr;
+    }
+    .hero-model {
+      max-width: 540px;
+      transform: none;
+    }
+    .continue-panel {
+      flex-wrap: wrap;
+    }
+    .continue-panel .button {
+      margin-left: 0;
+    }
+  }
+  @media (max-width: 600px) {
+    .edition {
+      display: none;
+    }
+    .learning-note > div {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+    .section-heading {
+      align-items: start;
+      flex-direction: column;
+    }
+    .continue-icon {
+      display: none;
+    }
+  }
+</style>

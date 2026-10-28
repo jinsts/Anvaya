@@ -1,0 +1,183 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import type { MarkdownHeading } from 'astro';
+import BaseLayout from './BaseLayout.astro';
+import SectionTOC from '../components/learning/SectionTOC.astro';
+import { getCatalog } from '../lib/catalog';
+import { neighbors, lessonUrl, pathUrl } from '../lib/path-model';
+interface Props {
+  lesson: CollectionEntry<'lessons'>;
+  headings: MarkdownHeading[];
+}
+const { lesson, headings } = Astro.props;
+const { lessons, paths } = await getCatalog();
+const path = paths.find((path) => path.id === lesson.data.path)!;
+const adjacent = neighbors(path.lessons, lesson.id);
+const titleOf = (id: string) =>
+  lessons.find((item) => item.id === id)!.data.title;
+---
+
+<BaseLayout title={lesson.data.title} description={lesson.data.summary}>
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a href="/paths/">Learning paths</a>
+    <span aria-hidden="true">/</span>
+    <a href={pathUrl(path.id)}>DSA foundations</a>
+    <span aria-hidden="true">/</span>
+    <span>{lesson.data.title.split(':')[0]}</span>
+  </nav>
+  <header class="lesson-hero">
+    <div class="meta">
+      <span class="eyebrow">
+        Foundations · {lesson.data.estimatedMinutes} min read & practice
+      </span>
+      <span class="badge">
+        {lesson.data.status === 'draft'
+          ? 'Draft · awaiting owner review'
+          : lesson.data.status}
+      </span>
+    </div>
+    <h1>{lesson.data.title}</h1>
+    <p class="lede">{lesson.data.summary}</p>
+    <p class="prereqs">
+      <strong>Before you begin:</strong>{' '}
+      {lesson.data.prerequisites.length
+        ? lesson.data.prerequisites.map((id) => (
+            <a href={lessonUrl(id)}>{titleOf(id)}</a>
+          ))
+        : 'Basic variables, loops, and functions. No data structures assumed.'}
+    </p>
+  </header>
+  <div class="lesson-grid">
+    <article class="prose" aria-label={lesson.data.title}>
+      <div class="objectives">
+        <span class="eyebrow">What you’ll be able to do</span>
+        <ul>
+          {lesson.data.learningObjectives.map((objective) => (
+            <li>{objective}</li>
+          ))}
+        </ul>
+      </div>
+      <slot />
+      <h2 id="sources">Sources & further reading</h2>
+      <p class="muted">
+        These references support the models and language caveats. Examples are
+        original and tested locally; this draft still needs owner review.
+      </p>
+      <ul>
+        {lesson.data.sources.map((source) => (
+          <li>
+            <a href={source.url}>{source.label}</a>
+          </li>
+        ))}
+      </ul>
+      <nav class="lesson-pagination" aria-label="Adjacent lessons">
+        {adjacent.previous && (
+          <a href={lessonUrl(adjacent.previous)}>
+            <small>← Previous lesson</small>
+            {titleOf(adjacent.previous)}
+          </a>
+        )}
+        {adjacent.next && (
+          <a href={lessonUrl(adjacent.next)}>
+            <small>Next lesson →</small>
+            {titleOf(adjacent.next)}
+          </a>
+        )}
+      </nav>
+    </article>
+    <aside class="lesson-outline">
+      <SectionTOC
+        headings={[
+          ...headings,
+          { depth: 2, slug: 'sources', text: 'Sources & further reading' },
+        ]}
+      />
+    </aside>
+  </div>
+</BaseLayout>
+<style>
+  .breadcrumbs {
+    display: flex;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    font-size: 0.76rem;
+    color: var(--muted);
+    margin-bottom: 2rem;
+  }
+  .breadcrumbs a {
+    text-decoration: none;
+  }
+  .lesson-hero {
+    max-width: 980px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+  }
+  .lesson-hero h1 {
+    font-size: clamp(2.5rem, 4vw, 4rem);
+    max-width: 19ch;
+  }
+  .meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .prereqs {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .lesson-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 175px;
+    gap: 3rem;
+    max-width: 1120px;
+  }
+  .objectives {
+    background: var(--accent-soft);
+    border-radius: var(--radius-sm);
+    padding: 1.25rem 1.5rem;
+    font-size: 0.9rem;
+  }
+  .objectives ul {
+    margin-bottom: 0;
+  }
+  .lesson-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-top: 2rem;
+    margin-top: 2rem;
+    border-top: 1px solid var(--border);
+  }
+  .lesson-pagination a {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    text-decoration: none;
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .lesson-pagination small {
+    color: var(--muted);
+  }
+  @media (max-width: 1150px) {
+    .lesson-grid {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.5rem;
+    }
+    .lesson-outline {
+      order: -1;
+    }
+    .lesson-outline :global(.toc) {
+      position: static;
+    }
+    .lesson-outline :global(ol) {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem 1rem;
+    }
+  }
+</style>

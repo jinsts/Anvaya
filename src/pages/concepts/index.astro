@@ -1,0 +1,70 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import LessonCard from '../../components/learning/LessonCard.astro';
+import { getCatalog } from '../../lib/catalog';
+const { lessons } = await getCatalog();
+---
+
+<BaseLayout title="Find a concept">
+  <header class="page-intro">
+    <span class="eyebrow">Find your way back</span>
+    <h1>
+      What are you
+      <br />
+      thinking about?
+    </h1>
+    <p class="lede">
+      Find a lesson by title, topic, or tag. The same ideas, wherever you first
+      met them.
+    </p>
+  </header>
+  <label for="search">Search concepts</label>
+  <input id="search" type="search" placeholder="Try arrays, memory, or keys…" />
+  <p id="search-status" role="status" class="muted">
+    {lessons.length} lessons
+  </p>
+  <div class="card-grid" id="results">
+    {lessons.map((lesson) => (
+      <div
+        data-search={`${lesson.data.title} ${lesson.data.summary} ${lesson.data.tags.join(' ')}`.toLowerCase()}
+      >
+        <LessonCard lesson={lesson} />
+      </div>
+    ))}
+  </div>
+  <p id="empty" hidden>
+    No matching lessons yet. Try another title or tag.
+  </p>
+</BaseLayout>
+<script>
+  const input = document.querySelector<HTMLInputElement>('#search');
+  const cards = [...document.querySelectorAll<HTMLElement>('[data-search]')];
+  input?.addEventListener('input', () => {
+    const query = input.value.trim().toLowerCase();
+    let count = 0;
+    cards.forEach((card) => {
+      card.hidden = !card.dataset.search?.includes(query);
+      if (!card.hidden) count++;
+    });
+    const status = document.querySelector('#search-status');
+    if (status)
+      status.textContent = `${count} ${count === 1 ? 'lesson' : 'lessons'}`;
+    const empty = document.querySelector<HTMLElement>('#empty');
+    if (empty) empty.hidden = count > 0;
+  });
+</script>
+<style>
+  input {
+    display: block;
+    width: 100%;
+    max-width: 650px;
+    margin: 0.5rem 0 1rem;
+    padding: 0.9rem 1rem;
+  }
+  label {
+    font-size: 0.85rem;
+  }
+  [hidden] {
+    display: none;
+  }
+</style>

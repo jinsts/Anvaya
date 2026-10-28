@@ -1,0 +1,105 @@
+---
+title: 'Hash Maps: Find by meaning'
+summary: 'Move from positions to keys. Understand hashing, collisions, and the assumptions behind fast lookup.'
+subject: dsa
+path: dsa-foundations
+difficulty: foundation
+estimatedMinutes: 15
+learningObjectives:
+  - Explain how keys differ from array positions
+  - Describe collisions and the limits of constant-time lookup
+prerequisites: [dsa/arrays]
+tags: [hashing, keys, lookup]
+status: draft
+sources:
+  - label: 'ECMAScript specification — Map objects'
+    url: 'https://tc39.es/ecma262/multipage/keyed-collections.html#sec-map-objects'
+  - label: 'Open Data Structures — Hash tables'
+    url: 'https://opendatastructures.org/ods-java/5_Hash_Tables.html'
+---
+
+import CodeExample from '../../../components/learning/CodeExample.astro';
+import Callout from '../../../components/learning/Callout.astro';
+import example from '../../../../labs/dsa/hash-maps/example.ts?raw';
+
+## From positions to keys
+
+An [array](/learn/dsa/arrays/) connects a position to a value. Suppose you want a
+count for the word `array` rather than the value at position 2. A map connects
+each **key** to a **value**; setting an existing key replaces its value.
+
+A textbook hash table computes a hash from a key, maps it into a bucket range,
+and looks for that key within the chosen bucket or probe sequence. The bucket
+index uses array-style indexed access, but the hash table must still compare
+keys. The array lesson's O(1) access alone does not prove O(1) key lookup.
+
+## A collision does not mean equality
+
+Two distinct keys can map to the same bucket. This is a **collision**, not a
+duplicate key. A chained hash table keeps multiple entries per bucket and checks
+key equality to find the right one. Open addressing instead searches other slots
+using a defined probe sequence. You do not need to implement either strategy yet.
+
+More entries per bucket usually mean more comparisons. Growing the bucket array
+and redistributing entries can keep the load factor (entries / buckets) bounded,
+at the cost of occasional O(n) rebuilds. With well-distributed hashes, bounded
+load, and constant-cost hashing/equality, a typical hash table provides expected
+O(1) lookup and amortized expected O(1) insertion. Collisions can make a worst-case
+operation O(n). Large string keys also cost time to hash or compare.
+
+<Callout title="JavaScript Map is an interface guarantee">
+  ECMAScript requires average access time sublinear in the collection's size. It
+  allows hash tables or other suitable mechanisms; it does not require strict
+  O(1) operations or a specific collision strategy. `Map` also preserves key
+  insertion order when iterating.
+</Callout>
+
+## Count repeated words
+
+In TypeScript 6 / Node 24, this example uses a JavaScript `Map`. Each step reads
+the previous count (or zero), then writes one greater. No prototype-property
+special cases are needed for string keys such as `__proto__`.
+
+<CodeExample
+  title="Word frequencies"
+  code={example}
+  output={
+    "[...frequencies(['array', 'map', 'array'])]\n→ [['array', 2], ['map', 1]]"
+  }
+/>
+
+The function is O(n) expected time for n words under expected constant-cost map
+operations on bounded-size keys. It retains O(k) entries for k distinct words.
+Those assumptions are a hash-table cost model, not a stronger ECMAScript promise.
+
+**Try first:** predict the output for `['map', 'array', 'map', 'set']`. Then add a
+case to `labs/dsa/hash-maps/example.test.ts` and run `pnpm test:labs`.
+
+<details>
+  <summary>Reveal the explanation</summary>
+
+The counts are `map → 2`, `array → 1`, and `set → 1`, in first-key insertion
+order. Updating `map` does not add a second entry or move its position.
+
+</details>
+
+## Choose the lookup you need
+
+Use an array for ordered positions and scans. Use a map when the central operation
+is lookup or update by a meaningful key. A map does not automatically provide
+sorted keys, range queries, or cheap access to “the third entry.”
+
+Check yourself: why must a hash table compare the actual key after computing a
+bucket? What could go wrong if it assumed that equal hashes meant equal keys?
+
+## Two-minute recap
+
+- A map answers **key → value** rather than **position → value**.
+- Hashing narrows where to look; equality still establishes the matching key.
+- Collisions are normal. Distribution, load and key costs affect performance.
+- Expected, amortized and worst-case costs describe different things.
+- JavaScript `Map` promises average sublinear access and insertion-order iteration,
+  not a mandatory hash-table representation.
+
+Revisit [array indexed access](/learn/dsa/arrays/#why-indexed-access-is-constant-time)
+and explain how a bucket array helps a hash table without eliminating collisions.

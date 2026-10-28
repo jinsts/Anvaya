@@ -1,0 +1,164 @@
+.array-explorer {
+  margin: 1.5rem 0;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.explorer-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+.explorer-heading h3 {
+  margin: 0.5rem 0 !important;
+  font: 1.6rem var(--font-display);
+}
+.explorer-caption {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 0.6rem 0 1rem;
+}
+.explorer-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font: 0.7rem var(--font-mono);
+  padding: 0.8rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.explorer-stats strong {
+  font-size: 1rem;
+  margin-left: 0.5rem;
+}
+.array-cells {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 1.5rem 0 1rem;
+}
+.array-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0.5rem 0.1rem;
+  background: var(--diagram-cell);
+}
+.array-cell:disabled {
+  opacity: 1;
+}
+.array-cell.active {
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
+}
+.array-cell.inserted {
+  background: var(--diagram-active);
+}
+.array-cell strong {
+  font: 1.65rem var(--font-mono);
+  line-height: 1.8;
+}
+.cell-index,
+.cell-state {
+  font: 0.65rem var(--font-mono);
+  color: var(--muted);
+}
+.operation-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.7rem;
+  padding: 1rem 0;
+  margin: 0;
+  border: 0;
+}
+.operation-controls legend {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0;
+}
+.operation-controls label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.75rem;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 75px;
+}
+.operation-controls input {
+  width: 100%;
+  min-width: 0;
+}
+.operation-controls select {
+  width: 100%;
+}
+.primary-control {
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.primary-control:hover:not(:disabled) {
+  background: var(--accent);
+  filter: brightness(1.15);
+}
+.operation-story {
+  border-left: 3px solid var(--accent);
+  padding: 1rem;
+  background: var(--accent-soft);
+  margin: 0.6rem 0;
+}
+.operation-story strong {
+  font-size: 0.8rem;
+}
+.operation-story p {
+  font-size: 0.85rem;
+  margin: 0.5rem 0;
+}
+.operation-story button {
+  margin-top: 0.5rem;
+}
+.operation-cost {
+  font-size: 0.78rem;
+  margin: 1rem 0;
+}
+.explorer-error {
+  background: var(--error-soft);
+  color: var(--error);
+  padding: 0.7rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+.array-explorer details {
+  background: var(--bg);
+  padding: 0.8rem;
+  font-size: 0.75rem;
+}
+.dataset-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.dataset-controls input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+@media (max-width: 480px) {
+  .operation-controls .primary-control {
+    width: 100%;
+  }
+  .array-cell strong {
+    font-size: 1.2rem;
+  }
+}
+
+.array-cell.inserted .cell-index,
+.array-cell.inserted .cell-state {
+  color: var(--text);
+}

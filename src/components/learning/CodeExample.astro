@@ -1,0 +1,83 @@
+---
+import { Code } from 'astro:components';
+interface Props {
+  code: string;
+  output?: string;
+  language?: 'ts' | 'js' | 'bash';
+  title: string;
+}
+const { code, output, language = 'ts', title } = Astro.props;
+---
+
+<div class="code-example">
+  <div class="code-label">
+    <span>
+      {title} · {language === 'ts' ? 'TypeScript' : language}
+    </span>
+    <button class="copy-code" data-code={code} aria-label={`Copy ${title}`}>
+      Copy
+    </button>
+    <span class="copy-status sr-only" role="status"></span>
+  </div>
+  <Code
+    code={code}
+    lang={language}
+    themes={{
+      light: 'github-light-high-contrast',
+      dark: 'github-dark-high-contrast',
+    }}
+  />
+  {output && (
+    <div class="output">
+      <span class="eyebrow">Expected output · verified in tests</span>
+      <pre>{output}</pre>
+    </div>
+  )}
+</div>
+<script>
+  document.querySelectorAll<HTMLButtonElement>('.copy-code').forEach((button) =>
+    button.addEventListener('click', async () => {
+      const status = button.parentElement?.querySelector('.copy-status');
+      try {
+        await navigator.clipboard.writeText(button.dataset.code ?? '');
+        if (status) status.textContent = 'Code copied.';
+        button.textContent = 'Copied';
+      } catch {
+        if (status)
+          status.textContent =
+            'Copy unavailable. Select the code to copy it manually.';
+        button.textContent = 'Select code below';
+      }
+    }),
+  );
+</script>
+<style>
+  .code-example {
+    margin: 1.5rem 0;
+    min-width: 0;
+  }
+  .code-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+  .copy-code {
+    min-height: 44px;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.75rem;
+  }
+  .output {
+    border-left: 3px solid var(--success);
+    padding: 0.5rem 1rem;
+  }
+  .output pre {
+    margin: 0.5rem 0;
+    padding: 0;
+    border: 0;
+    white-space: pre-wrap;
+    font-size: 0.8rem;
+  }
+</style>

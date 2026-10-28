@@ -1,0 +1,72 @@
+<div
+  class="table-scroll"
+  tabindex="0"
+  role="region"
+  aria-label="Array operation complexity"
+>
+  <table>
+    <caption>Dense textbook dynamic array · n values · index i</caption>
+    <thead>
+      <tr>
+        <th scope="col">Operation</th>
+        <th scope="col">Time</th>
+        <th scope="col">Why / auxiliary space</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row">Read / update by index</th>
+        <td>O(1)</td>
+        <td>Address calculation; O(1) space.</td>
+      </tr>
+      <tr>
+        <th scope="row">Traverse all values</th>
+        <td>Θ(n)</td>
+        <td>Visit every value; O(1) space without collecting output.</td>
+      </tr>
+      <tr>
+        <th scope="row">Unsorted linear search</th>
+        <td>O(1) best; O(n) worst; Θ(n) average*</td>
+        <td>Stop at a match, or scan all values; O(1) space.</td>
+      </tr>
+      <tr>
+        <th scope="row">Append with doubling</th>
+        <td>O(1) amortized; O(n) worst</td>
+        <td>
+          Resize occasionally copies n values; O(n) temporary space during
+          growth.
+        </td>
+      </tr>
+      <tr>
+        <th scope="row">Insert at i</th>
+        <td>O(1 + n − i) without growth; O(n) worst</td>
+        <td>
+          Shift suffix right; O(1) space without growth, O(n) if resizing.
+        </td>
+      </tr>
+      <tr>
+        <th scope="row">Remove at i</th>
+        <td>O(n − i); O(n) worst</td>
+        <td>Shift suffix left; O(1) space. No shrinking in this model.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<p class="complexity-note">
+  *Average search assumes a successful target equally likely at each position.
+  Missing targets require n comparisons. Unit-cost fixed-width values,
+  arithmetic and comparisons are assumed. Backing storage uses O(capacity)
+  space; after many removals, retained capacity may greatly exceed length.
+</p>
+<style>
+  caption {
+    text-align: left;
+    font-size: 0.8rem;
+    color: var(--muted);
+    padding-bottom: 0.7rem;
+  }
+  .complexity-note {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+</style>

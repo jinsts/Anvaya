@@ -1,0 +1,19 @@
+---
+interface Props {
+  caption: string;
+}
+const { caption } = Astro.props;
+---
+
+<figure class="diagram-frame">
+  <slot />
+  <figcaption>{caption}</figcaption>
+</figure>
+<style>
+  .diagram-frame {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    background: var(--surface);
+  }
+</style>

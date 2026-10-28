@@ -1,0 +1,11 @@
+export function linearSearch(
+  values: readonly number[],
+  target: number,
+): number {
+  for (let index = 0; index < values.length; index++) {
+    if (values[index] === target) return index;
+  }
+  return -1;
+}
+
+export { removeAt } from '../../../src/lib/array-operations';

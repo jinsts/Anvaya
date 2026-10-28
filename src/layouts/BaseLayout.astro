@@ -1,0 +1,382 @@
+---
+import '../styles/global.css';
+import { getCatalog } from '../lib/catalog';
+import { lessonUrl, pathUrl } from '../lib/path-model';
+interface Props {
+  title: string;
+  description?: string;
+}
+const {
+  title,
+  description = 'Connect concepts. Build understanding. A personal engineering learning platform.',
+} = Astro.props;
+const { lessons, paths } = await getCatalog();
+const current = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title} · Anvaya</title>
+    <script is:inline>
+      try {
+        const theme = localStorage.getItem('anvaya:theme:v1');
+        document.documentElement.dataset.theme =
+          theme === 'light' || theme === 'dark'
+            ? theme
+            : matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+      } catch {
+        document.documentElement.dataset.theme = matchMedia(
+          '(prefers-color-scheme: dark)',
+        ).matches
+          ? 'dark'
+          : 'light';
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">
+      Skip to content
+    </a>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Anvaya home">
+        <img src="/favicon.svg" alt="" width="32" height="32" /> Anvaya
+        <span class="brand-note">A place to understand.</span>
+      </a>
+      <div class="header-controls">
+        <label class="theme-label">
+          Theme{' '}
+          <select id="theme" aria-label="Color theme">
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </label>
+        <button id="menu-toggle" aria-expanded="false" aria-controls="site-nav">
+          Menu
+        </button>
+      </div>
+    </header>
+    <aside class="sidebar" id="site-nav">
+      <nav aria-label="Main navigation">
+        <p class="nav-heading">Your workspace</p>
+        <a href="/" aria-current={current === '/' ? 'page' : undefined}>
+          <span aria-hidden="true">⌂</span> Overview
+        </a>
+        <a
+          href="/paths/"
+          aria-current={current.startsWith('/paths') ? 'page' : undefined}
+        >
+          <span aria-hidden="true">↗</span> Learning paths
+        </a>
+        <a
+          href="/concepts/"
+          aria-current={current.startsWith('/concepts') ? 'page' : undefined}
+        >
+          <span aria-hidden="true">⌕</span> Find a concept
+        </a>
+        <p class="nav-heading path-heading">Currently exploring</p>
+        {paths.map((path) => (
+          <div class="nav-path">
+            <a href={pathUrl(path.id)} class="path-label">
+              {path.title}
+            </a>
+            {path.lessons.map((id, i) => (
+              <a
+                class="lesson-link"
+                href={lessonUrl(id)}
+                aria-current={current === lessonUrl(id) ? 'page' : undefined}
+              >
+                <span class="lesson-number">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                {
+                  lessons
+                    .find((lesson) => lesson.id === id)
+                    ?.data.title.split(':')[0]
+                }
+              </a>
+            ))}
+          </div>
+        ))}
+      </nav>
+      <div class="sidebar-note">
+        <span class="eyebrow">The learning loop</span>
+        <p>
+          Learn. Explore. Practise.
+          <br />
+          Recall. Come back.
+        </p>
+        <small>Small steps. Lasting understanding.</small>
+      </div>
+    </aside>
+    <div class="workspace">
+      <main id="main" tabindex="-1">
+        <slot />
+      </main>
+      <footer>
+        <span>
+          Anvaya <span aria-hidden="true">/</span> Connect concepts. Build
+          understanding.
+        </span>
+        <span>Made for deliberate learning.</span>
+      </footer>
+    </div>
+    <script>
+      const select = document.querySelector<HTMLSelectElement>('#theme');
+      const system = matchMedia('(prefers-color-scheme: dark)');
+      const applyTheme = () => {
+        const choice = select?.value ?? 'system';
+        document.documentElement.dataset.theme =
+          choice === 'system' ? (system.matches ? 'dark' : 'light') : choice;
+      };
+      if (select) {
+        try {
+          const stored = localStorage.getItem('anvaya:theme:v1');
+          select.value =
+            stored === 'light' || stored === 'dark' ? stored : 'system';
+        } catch {
+          /* Storage is optional. */
+        }
+        select.addEventListener('change', () => {
+          applyTheme();
+          try {
+            localStorage.setItem('anvaya:theme:v1', select.value);
+          } catch {
+            /* Theme still works for this page. */
+          }
+        });
+        system.addEventListener('change', applyTheme);
+        applyTheme();
+      }
+      const toggle = document.querySelector<HTMLButtonElement>('#menu-toggle');
+      const nav = document.querySelector<HTMLElement>('#site-nav');
+      const close = () => {
+        toggle?.setAttribute('aria-expanded', 'false');
+        nav?.classList.remove('open');
+      };
+      toggle?.addEventListener('click', () => {
+        const open = toggle.getAttribute('aria-expanded') !== 'true';
+        toggle.setAttribute('aria-expanded', String(open));
+        nav?.classList.toggle('open', open);
+      });
+      document.addEventListener('keydown', (event) => {
+        if (
+          event.key === 'Escape' &&
+          toggle?.getAttribute('aria-expanded') === 'true'
+        ) {
+          close();
+          toggle.focus();
+        }
+      });
+      nav
+        ?.querySelectorAll('a')
+        .forEach((link) => link.addEventListener('click', close));
+    </script>
+  </body>
+</html>
+<style>
+  .skip {
+    position: fixed;
+    left: 1rem;
+    top: -100px;
+    z-index: 100;
+    padding: 0.7rem;
+    background: var(--surface);
+  }
+  .skip:focus {
+    top: 1rem;
+  }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    height: var(--header-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    gap: 1rem;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-family: var(--font-display);
+    font-size: 1.7rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--text);
+  }
+  .brand-note {
+    border-left: 1px solid var(--border);
+    padding-left: 1.4rem;
+    margin-left: 1rem;
+    font: 0.78rem var(--font-body);
+    color: var(--muted);
+  }
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .theme-label {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  select {
+    padding: 0.4rem;
+  }
+  #menu-toggle {
+    display: none;
+  }
+  .sidebar {
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    display: flex;
+    flex-direction: column;
+    padding: 2rem 1rem;
+    border-right: 1px solid var(--border);
+    background: var(--bg);
+    overflow-y: auto;
+  }
+  nav a {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    color: var(--muted);
+    font-size: 0.86rem;
+    padding: 0.65rem 0.8rem;
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+  }
+  nav a:hover,
+  nav a[aria-current='page'] {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .nav-heading {
+    margin: 0 0.8rem 0.75rem;
+    font-size: 0.64rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .path-heading {
+    margin-top: 2.5rem;
+  }
+  nav .path-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .lesson-number {
+    color: var(--muted);
+    font: 0.7rem var(--font-mono);
+  }
+  .sidebar-note {
+    margin-top: auto;
+    padding: 3rem 0.8rem 0;
+    font-size: 0.83rem;
+  }
+  .sidebar-note p {
+    margin: 0.7rem 0;
+  }
+  .sidebar-note small {
+    color: var(--muted);
+    font-size: 0.7rem;
+  }
+  .workspace {
+    margin-left: var(--sidebar-width);
+    min-width: 0;
+  }
+  main {
+    padding: clamp(1.25rem, 4vw, 4rem);
+    max-width: 1500px;
+    min-height: calc(100vh - 180px);
+    margin: auto;
+    outline: none;
+  }
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 1.5rem 3rem;
+    color: var(--muted);
+    font-size: 0.72rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  @media (max-width: 1000px) {
+    :root {
+      --sidebar-width: 200px;
+    }
+    .brand-note {
+      display: none;
+    }
+  }
+  @media (max-width: 760px) {
+    .topbar {
+      padding: 0 1.2rem;
+    }
+    .brand {
+      font-size: 1.45rem;
+    }
+    .brand img {
+      width: 28px;
+    }
+    .theme-label {
+      font-size: 0;
+    }
+    .theme-label select {
+      font-size: 0.8rem;
+    }
+    #menu-toggle {
+      display: block;
+      font-size: 0.8rem;
+    }
+    .sidebar {
+      display: none;
+      width: min(320px, 90vw);
+      box-shadow: var(--shadow);
+      z-index: 19;
+    }
+    .sidebar.open {
+      display: flex;
+    }
+    .workspace {
+      margin-left: 0;
+    }
+    main {
+      padding-top: 2rem;
+    }
+    footer {
+      padding: 1.5rem;
+    }
+  }
+  @media print {
+    .topbar,
+    .sidebar,
+    footer {
+      display: none;
+    }
+    .workspace {
+      margin: 0;
+    }
+  }
+</style>

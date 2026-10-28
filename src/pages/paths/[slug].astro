@@ -1,0 +1,51 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import LessonCard from '../../components/learning/LessonCard.astro';
+import { getCatalog } from '../../lib/catalog';
+import { lessonUrl } from '../../lib/path-model';
+export async function getStaticPaths() {
+  const { paths } = await getCatalog();
+  return paths.map((path) => ({ params: { slug: path.id }, props: { path } }));
+}
+const { path } = Astro.props;
+const { lessons } = await getCatalog();
+const ordered = path.lessons.map((id: string) =>
+  lessons.find((lesson) => lesson.id === id)!,
+);
+---
+
+<BaseLayout title={path.title}>
+  <header class="page-intro">
+    <a href="/paths/">← All learning paths</a>
+    <p class="eyebrow" style="margin-top: 2rem">
+      Path 01 / Foundations
+    </p>
+    <h1>{path.title}</h1>
+    <p class="lede">{path.description}</p>
+    <div class="actions">
+      <span class="badge">{ordered.length} lessons</span>
+      <span class="badge">
+        {ordered.reduce((sum, lesson) => sum + lesson.data.estimatedMinutes, 0)}{' '}
+        minutes of learning & practice
+      </span>
+    </div>
+  </header>
+  <section class="panel">
+    <span class="eyebrow">Before you start</span>
+    <p>
+      Bring basic TypeScript familiarity: variables, functions, and loops. Start
+      with Arrays; Hash Maps builds on that indexed-storage model.
+    </p>
+    <a class="button" href={lessonUrl(ordered[0]!.id)}>
+      Begin the path →
+    </a>
+  </section>
+  <div class="section-heading">
+    <h2>Your route through the ideas</h2>
+  </div>
+  <div class="card-grid">
+    {ordered.map((lesson, i) => (
+      <LessonCard lesson={lesson} number={i + 1} />
+    ))}
+  </div>
+</BaseLayout>

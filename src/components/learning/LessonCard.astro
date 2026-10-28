@@ -1,0 +1,44 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { lessonUrl } from '../../lib/path-model';
+interface Props {
+  lesson: CollectionEntry<'lessons'>;
+  number?: number;
+}
+const { lesson, number } = Astro.props;
+---
+
+<a class="panel card-link" href={lessonUrl(lesson.id)}>
+  <div class="card-meta">
+    <span class="eyebrow">
+      {number
+        ? `Lesson ${String(number).padStart(2, '0')}`
+        : lesson.data.difficulty}
+    </span>
+    <span class="badge">{lesson.data.estimatedMinutes} min</span>
+  </div>
+  <h3>{lesson.data.title}</h3>
+  <p class="muted">{lesson.data.summary}</p>
+  <span class="card-foot">
+    {lesson.data.tags.slice(0, 3).join(' / ')}
+    <span aria-hidden="true">↗</span>
+  </span>
+</a>
+<style>
+  .card-meta,
+  .card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .card-foot {
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  h3 {
+    color: var(--text);
+  }
+</style>

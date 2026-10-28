@@ -1,0 +1,34 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCatalog } from '../../lib/catalog';
+import { pathUrl } from '../../lib/path-model';
+const { paths } = await getCatalog();
+---
+
+<BaseLayout title="Learning paths">
+  <header class="page-intro">
+    <span class="eyebrow">Learn with direction</span>
+    <h1>
+      One connection
+      <br />
+      at a time.
+    </h1>
+    <p class="lede">
+      Follow a thoughtful sequence. Build the mental model before adding the
+      next layer.
+    </p>
+  </header>
+  <div class="card-grid">
+    {paths.map((path) => (
+      <a class="panel card-link" href={pathUrl(path.id)}>
+        <span class="eyebrow">Foundations · {path.lessons.length} lessons</span>
+        <h3>{path.title}</h3>
+        <p class="muted">{path.description}</p>
+        <span>Explore the path →</span>
+      </a>
+    ))}
+  </div>
+  <p class="muted" style="margin-top: 2rem">
+    More paths will grow from real study. Start with this foundation.
+  </p>
+</BaseLayout>

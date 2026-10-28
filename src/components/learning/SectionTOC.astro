@@ -1,0 +1,64 @@
+---
+import type { MarkdownHeading } from 'astro';
+interface Props {
+  headings: MarkdownHeading[];
+}
+const { headings } = Astro.props;
+---
+
+<nav class="toc" aria-label="On this page">
+  <p class="eyebrow">In this lesson</p>
+  <ol>
+    {headings
+      .filter((h) => h.depth === 2)
+      .map((h) => (
+        <li>
+          <a href={`#${h.slug}`}>{h.text}</a>
+        </li>
+      ))}
+  </ol>
+</nav>
+<script>
+  const links = document.querySelectorAll<HTMLAnchorElement>('.toc a');
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting)
+          links.forEach((link) => {
+            if (link.hash === `#${entry.target.id}`)
+              link.setAttribute('aria-current', 'location');
+            else link.removeAttribute('aria-current');
+          });
+      });
+    },
+    { rootMargin: '-90px 0px -65% 0px' },
+  );
+  document
+    .querySelectorAll('.prose h2')
+    .forEach((heading) => observer.observe(heading));
+</script>
+<style>
+  .toc {
+    position: sticky;
+    top: var(--sticky-offset);
+    font-size: 0.76rem;
+  }
+  ol {
+    padding: 0;
+    list-style: none;
+    border-left: 1px solid var(--border);
+  }
+  a {
+    display: block;
+    text-decoration: none;
+    color: var(--muted);
+    padding: 0.4rem 0 0.4rem 1rem;
+    border-left: 2px solid transparent;
+    margin-left: -1px;
+  }
+  a:hover,
+  a[aria-current] {
+    color: var(--accent);
+    border-left-color: var(--accent);
+  }
+</style>

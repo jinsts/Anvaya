@@ -1,0 +1,293 @@
+---
+title: 'Arrays: Think in indices'
+summary: 'Understand indexed storage, explore the cost of moving values, and build a mental model you can test.'
+subject: dsa
+path: dsa-foundations
+difficulty: foundation
+estimatedMinutes: 45
+learningObjectives:
+  - Explain indexed access and its memory-model assumptions
+  - Trace insertion, deletion, and dynamic growth one step at a time
+  - Implement and test array operations with clear complexity bounds
+prerequisites: []
+tags: [arrays, memory, complexity]
+status: draft
+sources:
+  - label: 'ECMAScript specification — Array objects'
+    url: 'https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array-objects'
+  - label: 'Open Data Structures, section 2.1 — ArrayStack'
+    url: 'https://opendatastructures.org/ods-java/2_1_ArrayStack_Fast_Stack_O.html'
+---
+
+import ArrayExplorer from '../../../components/interactive/ArrayExplorer';
+import IndexedMemory from '../../../components/diagrams/IndexedMemory.astro';
+import Callout from '../../../components/learning/Callout.astro';
+import CodeExample from '../../../components/learning/CodeExample.astro';
+import ConceptCheck from '../../../components/learning/ConceptCheck.astro';
+import ComplexityTable from '../../../components/learning/ComplexityTable.astro';
+import LabCard from '../../../components/learning/LabCard.astro';
+import operationsSource from '../../../lib/array-operations.ts?raw';
+import workedSource from '../../../../labs/dsa/arrays/examples.ts?raw';
+
+## A position is a useful promise
+
+Imagine storing the last four temperature readings: `[12, 24, 36, 48]`. You want to
+read the third reading, replace a faulty value, or process readings in order. An
+array gives each value an **index**: a position counted from zero.
+
+The third reading is at index `2`. Its value is `36`. The index is a position,
+not a permanent identity: inserting a new reading before it changes its index.
+
+Think of a row of numbered lockers. A locker number takes you straight to a slot;
+finding the locker containing a particular item may require opening them all.
+The analogy stops at insertion: a packed array must move values to make a gap.
+
+**Predict:** Does knowing that `36` is present tell you its position? Not unless
+you kept an index or searched. Knowing a position and finding a value are different jobs.
+
+## Why indexed access is constant time
+
+In a simplified fixed-width, contiguous array, a base address tells us where the
+first cell lives. Every cell occupies the same width, so:
+
+```text
+address(i) = base + i × cellWidth
+```
+
+With base `1000`, width `4` bytes and index `2`, the address is `1008`. Computing
+that address does not walk past indices 0 and 1. Under the usual unit-cost RAM
+model, that calculation and the access take **O(1)** time, independent of length.
+
+<IndexedMemory />
+
+The model assumes constant-time address arithmetic and fixed-width stored values
+or references. Real memory has caches, alignment and allocation constraints; O(1)
+does not mean identical latency on every access. If cells store references, the
+referenced objects need not sit next to one another.
+
+<Callout title="A model, not a JavaScript memory guarantee" variant="warning">
+  JavaScript `Array` is a language-level object with special indexed-property
+  and `length` behavior. It can be sparse and hold mixed values. ECMAScript does
+  not promise contiguous storage or a specific Big-O bound for these operations.
+  The diagrams and cost table teach a dense textbook array; engines choose their
+  own representations. Typed arrays provide typed views over buffers, a separate
+  abstraction.
+</Callout>
+
+## Explore the work behind an operation
+
+Start with `[12, 24, 36, 48]`. **Predict what must move to insert `30` at index `2`.**
+Prepare the operation, then use **Next step**. The initial capacity is full, so
+this example deliberately includes both growth and shifting.
+
+<ArrayExplorer client:visible />
+
+The same insertion in words:
+
+1. Four occupied cells fill capacity 4. Allocate capacity 8 and copy the four values.
+2. Shift `48` from index 3 to 4, then `36` from index 2 to 3. Moving right to left
+   keeps the unread values safe.
+3. Write `30` into index 2. The logical array is `[12, 24, 30, 36, 48]`: length 5,
+   capacity 8. The other three cells are unused.
+
+Reading index 2 does one indexed access. This middle insertion shifts a suffix
+and, here, also copies the old buffer. The two jobs have different costs.
+
+Try these variations before reading on:
+
+- Reset, then **read** index 2. No values move.
+- **Update** index 2 to 99. Length stays the same; the old value is replaced.
+- **Append** 60. It writes at the old length; if capacity is full, copying happens first.
+- **Remove** index 1. Later values move left; our model retains capacity.
+- Load a blank example and insert at index 0. Try reading the empty array and explain the error.
+- Insert at index `length`, then try index `length + 1`. Only the first is valid here.
+
+No animation or timing is required. Every intermediate state is explicit; reset
+cancels an unfinished trace and restores the deterministic initial values.
+The explorer saves snapshots for teaching. Its rendering and trace-storage costs
+are separate from the algorithmic costs shown in the operation explanation.
+
+## Length, capacity, and the occasional expensive append
+
+A **fixed-size array** has a set number of slots. A **dynamic array** keeps a
+backing array and a logical length. Only indices `0` through `length - 1` contain
+logical values. The invariant in a finished operation is:
+
+```text
+0 ≤ length ≤ capacity
+```
+
+Appending with spare capacity adds one value and increases length. Appending to
+a full buffer needs another allocation and a copy. Our model doubles capacity:
+`4 → 8 → 16`. A resize from capacity 4 copies four old values before writing the fifth.
+
+Why is append called **amortized O(1)**? Across m appends starting empty with
+constant initial capacity, copies happen at geometrically increasing sizes.
+Their sum is less than a constant multiple of m; adding the m writes still gives
+O(m) total work. The cost per append, spread over that whole sequence, is O(1).
+This bound assumes allocation/initialization of k cells costs O(k).
+
+That is a bound over a sequence, not a probability or a guarantee for the next
+append. A particular append that resizes still takes O(n) time and temporarily
+needs both buffers. Adding only one slot on each resize would instead copy on
+every append and accumulate quadratic work. Middle insertion still shifts values,
+so doubling does not make arbitrary insertion amortized constant time.
+
+We keep capacity after removal to isolate shifting from shrinking. A production
+container may shrink with a carefully chosen policy; shrinking immediately after
+every removal can cause repeated allocations. The explorer caps examples at 16
+values for readability, not because arrays have that limit.
+
+## Implement the mechanism
+
+These are complete TypeScript helpers for **dense numeric arrays**, targeting
+TypeScript 6 and Node 24. They validate indices and mutate the passed array.
+The bounds are explicit: insert accepts `0 ≤ i ≤ length`; read, update and remove
+accept `0 ≤ i < length`. An invalid operation throws before mutation.
+
+<CodeExample title="Indexed operations and shifting" code={operationsSource} />
+
+For insertion, the loop invariant is that the suffix already visited has moved
+one place right while earlier values remain available to read. After the loop,
+index `i` can be overwritten safely. For removal, moving left to right preserves
+each next unread value. Shortening `length` removes the now-duplicate last slot.
+
+The TypeScript helpers use JavaScript arrays as their implementation medium.
+They demonstrate the loops, not a manually allocated buffer; JavaScript controls
+its own allocation. Their conceptual work counts assume indexed reads/writes
+are constant time. Copying an input first would add O(n) time and space, even to
+an otherwise constant-time update.
+
+<CodeExample
+  title="Worked example"
+  code={workedSource}
+  output={
+    'inserted: [12, 24, 30, 36, 48]\nread: 30\nremoved: 36\nfinal: [12, 24, 30, 48]'
+  }
+/>
+
+The import refers to the supplied repository helper. Run `pnpm test` from the
+root to verify this example and its expected fields.
+
+## Count the work, then name the bound
+
+Let `n` be length before an operation and `i` its index. Count reads, writes, and
+comparisons before reaching for Big-O. Insert at index 0 shifts n values; insert
+at n shifts none. With no resize, these cost O(n) and O(1), respectively.
+
+<ComplexityTable />
+
+“Average” needs an input distribution; “amortized” needs a sequence of operations.
+Neither term means that a slow operation cannot happen. Big-O is an upper bound;
+Θ gives a tight asymptotic bound under the stated model.
+
+## Choose arrays for the work you have
+
+Arrays are a good fit for ordered readings, image pixels, lookup by known position,
+and repeated sequential processing. A dense contiguous representation often has
+good memory locality, though that observation is not a JavaScript layout promise.
+
+If your main question is “what value belongs to this key?”, a
+[hash map](/learn/dsa/hash-maps/) may avoid repeated scans. With a linked list,
+insertion after an already-known node can take O(1), but finding an arbitrary
+position takes O(n); each node also needs link storage. Neither alternative makes
+all operations cheap. Choose based on the operations you actually repeat.
+
+Two useful patterns to study later are **two pointers** (move two positions through
+a sequence, such as inward when checking a palindrome) and a **sliding window**
+(reuse information while a contiguous range moves, such as a rolling sum). These
+are future lessons, not prerequisites here.
+
+### Pitfalls worth catching early
+
+- **Off by one:** the last occupied index is `length - 1`; `length` is a valid insertion position only.
+- **Mutation:** two variables can refer to the same array. A change through one is visible through the other.
+- **Empty input:** a length-zero array has no readable index. Decide the contract before coding.
+- **Holes:** `delete values[i]` leaves a hole; it does not shift values or decrement length.
+- **Equality:** `===` compares objects by identity, not by matching their properties. `NaN === NaN` is false; the labs constrain inputs to finite numbers.
+- **Cost assumptions:** a method name does not prove constant time. Scanning, shifting, copying, allocation and the cost of comparing large values all matter.
+
+## Practise without the solution
+
+Read `labs/dsa/arrays/README.md`, then fill in `starter.ts`. No code runs in the
+browser: these exercises run locally with the repository's test runner.
+
+<LabCard title="01 / Find the first matching value" command="pnpm lab:arrays">
+  Implement `linearSearch(values, target)`: return the first index whose value
+  is `=== target`, or `-1`. Do not mutate input. Values and target are finite
+  numbers. `[5, 5, 9]` with target 5 returns 0; `[]` returns -1. Explain best
+  and worst cases.
+</LabCard>
+
+<details>
+  <summary>Hint after an attempt</summary>
+
+Visit indices from 0 upward. Return immediately on the first match. If the
+loop finishes, every occupied position has been checked, so return -1.
+
+</details>
+
+<LabCard title="02 / Close a gap in place" command="pnpm lab:arrays">
+  Implement `removeAt(values, index)`: mutate the same dense array and return
+  the removed value. `[12, 24, 36, 48]`, index 2 returns 36 and leaves `[12, 24,
+  48]`. Reject noninteger, negative, or out-of-range indices with `RangeError`
+  before mutation. Test empty input, one value, and removal at both ends.
+</LabCard>
+
+<details>
+  <summary>Compare with the reference after solving</summary>
+
+The tested reference lives in `labs/dsa/arrays/solution.ts`; its removal
+helper is the implementation above. Run `pnpm test:labs` to verify the
+references, and `pnpm lab:arrays` to verify your own work. The latter
+intentionally fails until the starter is implemented. Search is O(n)
+worst-case time, O(1) auxiliary space; removal is O(n − i) time, O(1)
+auxiliary space in the indexed model.
+
+</details>
+
+## Check your reasoning
+
+<ConceptCheck
+  id="insertion-cost"
+  question="A length-n array has spare capacity. Why can inserting at index 0 still take O(n)?"
+  options={[
+    {
+      label: 'Computing address 0 requires visiting every cell.',
+      explanation:
+        'A known address is computed directly in this model. The work comes from making room, not locating index 0.',
+    },
+    {
+      label: 'All n existing values must shift right to preserve order.',
+      correct: true,
+      explanation:
+        'Spare capacity removes allocation work, but the entire suffix still moves. One indexed write is cheap; n writes are linear.',
+    },
+    {
+      label: 'Every insertion must double capacity.',
+      explanation:
+        'Growth is only needed when full. Even without it, inserting at the front shifts the existing values.',
+    },
+  ]}
+/>
+
+Before revealing the recap, explain these aloud:
+
+1. Why can a read at a known index avoid a scan, while a search cannot?
+2. Which values move when removing index 1 from `[12, 24, 36, 48]`?
+3. What happens on the fifth append to an initially capacity-4 empty buffer?
+4. Why does amortized O(1) append not promise constant latency every time?
+5. Which of our memory assumptions does JavaScript's `Array` specification leave to engines?
+
+## Two-minute recap
+
+- **Position → value:** a known index enables O(1) indexed access in the fixed-width RAM model.
+- **Value → position:** without an index, an unsorted search may inspect all n values.
+- **Preserve order:** insertion shifts a suffix right; removal shifts it left. Direction matters.
+- **Length is not capacity:** values occupy `[0, length)`; capacity describes available slots.
+- **Growth moves the bill:** doubling gives amortized O(1) append, but a resize is O(n).
+- **Model is not runtime:** JavaScript does not guarantee a contiguous representation for ordinary arrays.
+
+Return to the explorer and explain one insertion without pressing a button.
+Then connect this model to [Hash Maps](/learn/dsa/hash-maps/): what changes when
+the lookup starts with a key instead of a position?

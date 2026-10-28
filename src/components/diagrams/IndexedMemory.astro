@@ -1,0 +1,160 @@
+---
+import DiagramFrame from '../learning/DiagramFrame.astro';
+---
+
+<DiagramFrame caption="Illustrative fixed-width cells: base address 1000, width 4 bytes. Buttons provide the same selection as the diagram.">
+  <div class="indexed-memory">
+    <p class="eyebrow">Explore the address model</p>
+    <svg
+      viewBox="0 0 520 158"
+      aria-labelledby="memory-title memory-desc"
+      role="group"
+    >
+      <title id="memory-title">Four array values in adjacent fixed-width cells</title>
+      <desc id="memory-desc">
+        Indices 0, 1, 2, 3 hold 12, 24, 36, 48 at illustrative addresses 1000,
+        1004, 1008, 1012. Use the buttons below to select an index.
+      </desc>
+      {[12, 24, 36, 48].map((value, i) => (
+        <g
+          data-memory-index={i}
+          tabindex="0"
+          role="button"
+          aria-label={`Inspect memory index ${i}`}
+          aria-pressed={i === 0 ? 'true' : 'false'}
+        >
+          <text
+            x={66 + i * 128}
+            y="24"
+            text-anchor="middle"
+            class="index-label"
+          >
+            index {i}
+          </text>
+          <rect x={8 + i * 128} y="38" width="116" height="65" rx="6" />
+          <text
+            x={66 + i * 128}
+            y="80"
+            text-anchor="middle"
+            class="value-label"
+          >
+            {value}
+          </text>
+          <text
+            x={66 + i * 128}
+            y="133"
+            text-anchor="middle"
+            class="index-label"
+          >
+            {1000 + i * 4}
+          </text>
+        </g>
+      ))}
+    </svg>
+    <div class="memory-buttons" role="group" aria-label="Select array index">
+      {[0, 1, 2, 3].map((i) => (
+        <button data-memory-index={i} aria-pressed={i === 0 ? 'true' : 'false'}>
+          Index {i}
+        </button>
+      ))}
+    </div>
+    <p class="memory-feedback" role="status" aria-live="polite">
+      Index 0 → address 1000 + 0 × 4 = 1000 → value 12. One calculation,
+      regardless of array length.
+    </p>
+  </div>
+</DiagramFrame>
+<script>
+  document
+    .querySelectorAll<HTMLElement>('.indexed-memory')
+    .forEach((diagram) => {
+      const select = (index: number) => {
+        diagram
+          .querySelectorAll('[data-memory-index]')
+          .forEach((node) =>
+            node.setAttribute(
+              'aria-pressed',
+              String(Number(node.getAttribute('data-memory-index')) === index),
+            ),
+          );
+        const panel = diagram.querySelector('.memory-feedback');
+        if (panel)
+          panel.textContent = `Index ${index} → address 1000 + ${index} × 4 = ${1000 + index * 4} → value ${[12, 24, 36, 48][index]}. One calculation, regardless of array length.`;
+      };
+      diagram
+        .querySelectorAll<HTMLElement | SVGElement>('[data-memory-index]')
+        .forEach((node) => {
+          node.addEventListener('click', () =>
+            select(Number(node.getAttribute('data-memory-index'))),
+          );
+          if (node.tagName.toLowerCase() === 'g')
+            node.addEventListener('keydown', (event) => {
+              if (
+                event instanceof KeyboardEvent &&
+                (event.key === 'Enter' || event.key === ' ')
+              ) {
+                event.preventDefault();
+                select(Number(node.getAttribute('data-memory-index')));
+              }
+            });
+        });
+    });
+</script>
+<style>
+  svg {
+    display: block;
+    width: 100%;
+    margin: 1rem 0;
+  }
+  g {
+    cursor: pointer;
+  }
+  rect {
+    fill: var(--diagram-cell);
+    stroke: var(--border);
+    stroke-width: 1.5px;
+  }
+  g[aria-pressed='true'] rect {
+    fill: var(--accent-soft);
+    stroke: var(--accent);
+    stroke-width: 3px;
+  }
+  g:focus-visible {
+    outline: none;
+  }
+  g:focus-visible rect {
+    stroke: var(--focus);
+    stroke-width: 4px;
+  }
+  text {
+    fill: var(--text);
+    font-family: var(--font-mono);
+  }
+  .value-label {
+    font-size: 27px;
+  }
+  .index-label {
+    font-size: 13px;
+    fill: var(--muted);
+  }
+  .memory-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  button {
+    flex: 1;
+    font-size: 0.8rem;
+  }
+  button[aria-pressed='true'] {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+  .memory-feedback {
+    margin: 1rem 0 0;
+    font: 0.8rem/1.7 var(--font-mono);
+    padding: 1rem;
+    background: var(--subtle);
+    border-radius: var(--radius-sm);
+  }
+</style>
