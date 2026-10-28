@@ -103,7 +103,7 @@ test('practice filters, statuses persist, and a mock interview records its outco
 test('question drill reveals answers and brings review items back first', async ({
   page,
 }) => {
-  await page.goto('/practice/questions/?lesson=dsa/hash-maps');
+  await page.goto('/practice/questions/dsa/?lesson=dsa/hash-maps');
   const drill = page.getByRole('region', { name: 'Question drill' });
   const progress = drill.locator('[data-drill-progress]');
   await expect(progress).toHaveText('Question 1 of 5 · 0 marked for review');
@@ -130,6 +130,7 @@ test('practice, drill, search and home pass accessibility scans in both themes',
     '/',
     '/practice/',
     '/practice/questions/',
+    '/practice/questions/dsa/',
     '/concepts/?q=array',
   ]) {
     await page.goto(url);

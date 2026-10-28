@@ -1,57 +1,65 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import PageHeader from '../../components/ui/PageHeader.astro';
-import Icon from '../../components/ui/Icon.astro';
-import { inlineMarkdown, plural } from '../../lib/format';
-import { getCatalog, lessonLabel } from '../../lib/catalog';
-import { lessonUrl } from '../../lib/path-model';
-import { questionId } from '../../lib/practice-model';
-const { lessons, availableSubjects } = await getCatalog();
-const withQuestions = lessons.filter(
-  (lesson) => lesson.data.interviewQuestions.length > 0,
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../../components/ui/Breadcrumbs.astro';
+import PageHeader from '../../../components/ui/PageHeader.astro';
+import Icon from '../../../components/ui/Icon.astro';
+import { inlineMarkdown, plural } from '../../../lib/format';
+import { getCatalog, lessonLabel } from '../../../lib/catalog';
+import { lessonUrl } from '../../../lib/path-model';
+import { questionId } from '../../../lib/practice-model';
+// One drill page per subject keeps page weight proportional to a subject, not the library.
+export async function getStaticPaths() {
+  const { availableSubjects, lessons } = await getCatalog();
+  return availableSubjects
+    .filter((subject) =>
+      lessons.some(
+        (lesson) =>
+          lesson.data.subject === subject.id &&
+          lesson.data.interviewQuestions.length > 0,
+      ),
+    )
+    .map((subject) => ({
+      params: { subject: subject.id },
+      props: { subjectId: subject.id },
+    }));
+}
+const { subjectId } = Astro.props;
+const { lessons, subjectById } = await getCatalog();
+const subject = subjectById.get(subjectId)!;
+const subjectLessons = lessons.filter(
+  (lesson) =>
+    lesson.data.subject === subject.id &&
+    lesson.data.interviewQuestions.length > 0,
 );
-const groups = availableSubjects
-  .map((subject) => ({
-    subject,
-    lessons: withQuestions.filter(
-      (lesson) => lesson.data.subject === subject.id,
-    ),
-  }))
-  .filter((group) => group.lessons.length > 0);
-const total = withQuestions.reduce(
+const total = subjectLessons.reduce(
   (count, lesson) => count + lesson.data.interviewQuestions.length,
   0,
 );
 ---
 
-<BaseLayout title="Question drill">
+<BaseLayout title={`${subject.title} question drill`}>
+  <Breadcrumbs
+    items={[
+      { label: 'Practice', href: '/practice/' },
+      { label: 'Question drill', href: '/practice/questions/' },
+      { label: subject.title },
+    ]}
+  />
   <PageHeader
-    title="Question drill"
+    title={`${subject.title} questions`}
     description="Answer each question out loud first, then compare with a model answer. Questions you mark for review come back first."
-    icon="message-circle-question-mark"
-  >
-    <p class="header-links">
-      <a href="/practice/">
-        <Icon name="target" size={16} /> Practice problems
-      </a>
-    </p>
-  </PageHeader>
+    icon={subject.icon}
+    tone={subject.tone}
+  />
 
   <section class="card drill js-only" aria-label="Question drill" data-drill>
     <div class="drill-toolbar">
       <label>
         <span class="sr-only">Topic</span>
         <select data-drill-filter>
-          <option value="">All topics</option>
-          {groups.map((group) => (
-            <optgroup label={group.subject.title}>
-              <option value={`subject:${group.subject.id}`}>
-                All {group.subject.title}
-              </option>
-              {group.lessons.map((lesson) => (
-                <option value={lesson.id}>{lessonLabel(lesson)}</option>
-              ))}
-            </optgroup>
+          <option value="">All {subject.title}</option>
+          {subjectLessons.map((lesson) => (
+            <option value={lesson.id}>{lessonLabel(lesson)}</option>
           ))}
         </select>
       </label>
@@ -96,63 +104,46 @@ const total = withQuestions.reduce(
       <h2 id="all-questions">All questions</h2>
       <p class="muted">{plural(total, 'question')}</p>
     </div>
-    {groups.length === 0 && (
-      <p class="card empty-state">
-        No interview questions yet. Lessons add them in their frontmatter.
-      </p>
-    )}
-    {groups.map((group) =>
-      group.lessons.map((lesson) => (
-        <section
-          class="question-group"
-          aria-labelledby={`questions-${lesson.id.replace('/', '-')}`}
-        >
-          <h3 id={`questions-${lesson.id.replace('/', '-')}`}>
-            <a href={lessonUrl(lesson.id)}>{lesson.data.title}</a>
-          </h3>
-          {lesson.data.interviewQuestions.map((question) => (
-            <details
-              class="question"
-              data-question={questionId(lesson.id, question.prompt)}
-              data-lesson={lesson.id}
-              data-context={`${group.subject.title} · ${lessonLabel(lesson)}`}
-            >
-              <summary set:html={inlineMarkdown(question.prompt)} />
-              <div class="answer">
-                <p set:html={inlineMarkdown(question.answer)} />
-                {question.followUps.length > 0 && (
-                  <>
-                    <p class="follow-label">Likely follow-ups</p>
-                    <ul>
-                      {question.followUps.map((followUp) => (
-                        <li set:html={inlineMarkdown(followUp)} />
-                      ))}
-                    </ul>
-                  </>
-                )}
-              </div>
-            </details>
-          ))}
-        </section>
-      )),
-    )}
+    {subjectLessons.map((lesson) => (
+      <section
+        class="question-group"
+        aria-labelledby={`questions-${lesson.id.replace('/', '-')}`}
+      >
+        <h3 id={`questions-${lesson.id.replace('/', '-')}`}>
+          <a href={lessonUrl(lesson.id)}>{lesson.data.title}</a>
+        </h3>
+        {lesson.data.interviewQuestions.map((question) => (
+          <details
+            class="question"
+            data-question={questionId(lesson.id, question.prompt)}
+            data-lesson={lesson.id}
+            data-context={`${subject.title} · ${lessonLabel(lesson)}`}
+          >
+            <summary set:html={inlineMarkdown(question.prompt)} />
+            <div class="answer">
+              <p set:html={inlineMarkdown(question.answer)} />
+              {question.followUps.length > 0 && (
+                <>
+                  <p class="follow-label">Likely follow-ups</p>
+                  <ul>
+                    {question.followUps.map((followUp) => (
+                      <li set:html={inlineMarkdown(followUp)} />
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          </details>
+        ))}
+      </section>
+    ))}
   </section>
 </BaseLayout>
 <script>
-  import { initDrill } from '../../scripts/drill';
+  import { initDrill } from '../../../scripts/drill';
   initDrill();
 </script>
 <style>
-  .header-links {
-    margin: var(--space-4) 0 0;
-  }
-  .header-links a {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-weight: 600;
-    text-decoration: none;
-  }
   .drill-toolbar {
     display: flex;
     flex-wrap: wrap;

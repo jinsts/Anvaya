@@ -48,7 +48,9 @@ const query = encodeURIComponent(lessonId);
         ))}
       </div>
       <p class="interview-link">
-        <a href={`/practice/questions/?lesson=${query}`}>
+        <a
+          href={`/practice/questions/${lessonId.split('/')[0]}/?lesson=${query}`}
+        >
           Drill these questions <Icon name="arrow-right" size={16} />
         </a>
       </p>
