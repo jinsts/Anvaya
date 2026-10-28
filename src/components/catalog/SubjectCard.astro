@@ -1,0 +1,71 @@
+---
+import { plural } from '../../lib/format';
+import Icon from '../ui/Icon.astro';
+import { subjectUrl } from '../../lib/path-model';
+import type { CatalogSubject } from '../../lib/catalog';
+interface Props {
+  subject: CatalogSubject;
+  trail: string;
+  lessons: number;
+  paths: number;
+  problems: number;
+  /** Space-separated category IDs for client-side category filtering. */
+  categories?: string;
+}
+const { subject, trail, lessons, paths, problems, categories } = Astro.props;
+---
+
+<a
+  class="card card-link subject-card"
+  href={subjectUrl(subject.id)}
+  data-tone={subject.tone}
+  data-subject-categories={categories}
+>
+  <span class="subject-top">
+    <span class="icon-tile">
+      <Icon name={subject.icon} size={20} />
+    </span>
+    <span class="subject-trail">{trail}</span>
+  </span>
+  <h3>{subject.title}</h3>
+  <p class="muted">{subject.description}</p>
+  <span class="subject-stats">
+    <span>{plural(lessons, 'lesson')}</span>
+    <span>{plural(paths, 'path')}</span>
+    {problems > 0 && <span>{plural(problems, 'practice problem')}</span>}
+  </span>
+</a>
+<style>
+  .subject-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  .subject-top {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .subject-trail {
+    color: var(--muted);
+    font-size: var(--text-xs);
+  }
+  h3 {
+    margin: var(--space-4) 0 var(--space-2);
+    font-size: var(--text-lg);
+  }
+  p {
+    font-size: var(--text-sm);
+  }
+  .subject-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+    margin-top: auto;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: var(--text-xs);
+    font-weight: 550;
+  }
+</style>

@@ -1,0 +1,6 @@
+name: Hello Interview
+kind: guide
+url: https://www.hellointerview.com/
+prefixes:
+  - https://www.hellointerview.com/learn/
+description: Interview guides with a structured delivery framework for system design interviews.

@@ -1,0 +1,9 @@
+title: Contains Duplicate
+url: https://leetcode.com/problems/contains-duplicate/
+difficulty: easy
+lessons: [dsa/hash-maps]
+topics: [hashing, sets]
+lists: [blind-75, neetcode-150]
+hints:
+  - A duplicate means you have already seen the same value earlier in the scan.
+  - Add values to a set as you scan and stop at the first value already present. Sorting and comparing neighbours is an O(n log n) alternative.

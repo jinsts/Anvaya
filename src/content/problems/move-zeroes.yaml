@@ -1,0 +1,8 @@
+title: Move Zeroes
+url: https://leetcode.com/problems/move-zeroes/
+difficulty: easy
+lessons: [dsa/arrays]
+topics: [arrays, in-place]
+hints:
+  - Non-zero values keep their relative order. You only need to know where the next non-zero value belongs.
+  - Copy non-zero values forward with a write index, then fill the remaining positions with zeros. That is O(n) time and O(1) extra space.

@@ -1,15 +1,19 @@
 ---
+import '@fontsource-variable/inter';
+import '@fontsource-variable/jetbrains-mono';
 import '../styles/global.css';
-import { getCatalog } from '../lib/catalog';
+import Icon from '../components/ui/Icon.astro';
+import { getCatalog, lessonLabel, lessonUrlIn } from '../lib/catalog';
 import {
-  lessonUrl,
-  pathUrl,
+  categoryUrl,
   pathLessonIds,
   pathSections,
+  pathUrl,
+  subjectUrl,
   subjectsInCategory,
+  type LearningPath,
 } from '../lib/path-model';
-import type { LearningPath } from '../data/paths';
-import Icon from '../components/ui/Icon.astro';
+import type { IconName } from '../lib/icons';
 interface Props {
   title: string;
   description?: string;
@@ -21,17 +25,17 @@ const {
   activePath,
 } = Astro.props;
 const {
-  lessons,
-  paths,
+  lessonById,
+  pathsByLesson,
   categories,
   availableSubjects: subjects,
 } = await getCatalog();
 const current = Astro.url.pathname;
-const currentLesson = lessons.find(
-  (lesson) => lessonUrl(lesson.id) === current,
-);
+const currentLesson = current.startsWith('/learn/')
+  ? lessonById.get(current.slice('/learn/'.length).replace(/\/$/, ''))
+  : undefined;
 const studyPaths = currentLesson
-  ? paths.filter((path) => pathLessonIds(path).includes(currentLesson.id))
+  ? (pathsByLesson.get(currentLesson.id) ?? [])
   : activePath
     ? [activePath]
     : [];
@@ -39,32 +43,40 @@ const defaultPath =
   activePath ??
   studyPaths.find((path) => path.id === currentLesson?.data.path) ??
   studyPaths[0];
-const visibleCategories = categories.filter(
-  (category) => subjectsInCategory(category.id, subjects, categories).length,
+const rootCategories = categories.filter(
+  (category) =>
+    !category.parent &&
+    subjectsInCategory(category.id, subjects, categories).length,
 );
-const navItems = [
-  {
-    href: '/',
-    title: 'Overview',
-    icon: 'home' as const,
-    active: current === '/',
-  },
+const navItems: {
+  href: string;
+  title: string;
+  icon: IconName;
+  active: boolean;
+}[] = [
+  { href: '/', title: 'Home', icon: 'house', active: current === '/' },
   {
     href: '/explore/',
-    title: 'Explore subjects',
-    icon: 'explore' as const,
+    title: 'Explore',
+    icon: 'compass',
     active: current.startsWith('/explore') || current.startsWith('/subjects'),
   },
   {
     href: '/paths/',
     title: 'Learning paths',
-    icon: 'path' as const,
+    icon: 'route',
     active: current.startsWith('/paths'),
   },
   {
+    href: '/practice/',
+    title: 'Practice',
+    icon: 'target',
+    active: current.startsWith('/practice'),
+  },
+  {
     href: '/concepts/',
-    title: 'Find a concept',
-    icon: 'search' as const,
+    title: 'Search',
+    icon: 'search',
     active: current.startsWith('/concepts'),
   },
 ];
@@ -104,57 +116,90 @@ const navItems = [
     </a>
     <header class="topbar">
       <a class="brand" href="/" aria-label="Anvaya home">
-        <img src="/favicon.svg" alt="" width="29" height="29" />
-        Anvaya
+        <img src="/favicon.svg" alt="" width="28" height="28" />
+        <span>Anvaya</span>
       </a>
       <details class="explore-menu">
         <summary>
-          Explore <span aria-hidden="true">⌄</span>
+          Explore <Icon name="chevron-down" size={16} />
         </summary>
         <div class="explore-popover">
-          <p class="eyebrow">Your learning library</p>
           <a class="explore-all" href="/explore/">
-            Explore all subjects <Icon name="arrow" />
+            Explore all subjects <Icon name="arrow-right" size={16} />
           </a>
-          {visibleCategories
-            .filter((category) => !category.parent)
-            .map((category) => (
+          {rootCategories.map((category) => {
+            const inCategory = subjectsInCategory(
+              category.id,
+              subjects,
+              categories,
+            );
+            return (
               <div class="explore-group">
-                <a href={`/explore/?category=${category.id}`}>
-                  <Icon name="explore" />
+                <a class="explore-category" href={categoryUrl(category.id)}>
                   {category.title}
-                  <Icon name="chevron" size={14} />
                 </a>
+                <ul>
+                  {inCategory.slice(0, 6).map((subject) => (
+                    <li>
+                      <a href={subjectUrl(subject.id)} data-tone={subject.tone}>
+                        <span class="icon-tile">
+                          <Icon name={subject.icon} size={16} />
+                        </span>
+                        {subject.title}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+                {inCategory.length > 6 && (
+                  <a class="explore-more" href={categoryUrl(category.id)}>
+                    All {inCategory.length} subjects
+                  </a>
+                )}
               </div>
-            ))}
+            );
+          })}
         </div>
       </details>
-      <form class="global-search" role="search" action="/concepts/">
-        <Icon name="search" size={17} />
+      <form
+        class="global-search"
+        role="search"
+        aria-label="Site"
+        action="/concepts/"
+      >
+        <Icon name="search" size={16} />
         <input
           type="search"
           name="q"
-          placeholder="Search your learning library"
+          placeholder="Search lessons and practice"
           aria-label="Search all learning"
+          aria-keyshortcuts="/"
         />
-        <button type="submit" aria-label="Search library">
-          <Icon name="arrow" size={16} />
-        </button>
+        <kbd aria-hidden="true">/</kbd>
       </form>
       <div class="header-controls">
-        <a class="mobile-search" href="/concepts/" aria-label="Search library">
-          <Icon name="search" />
+        <a
+          class="icon-button mobile-search"
+          href="/concepts/"
+          aria-label="Search library"
+        >
+          <Icon name="search" size={20} />
         </a>
-        <label class="theme-label">
-          <span>Theme</span>
+        <div class="theme-control">
+          <Icon name="sun-moon" size={17} />
           <select id="theme" aria-label="Color theme">
             <option value="system">System</option>
             <option value="light">Light</option>
             <option value="dark">Dark</option>
           </select>
-        </label>
-        <button id="menu-toggle" aria-expanded="false" aria-controls="site-nav">
-          Menu
+        </div>
+        <button
+          id="menu-toggle"
+          class="icon-button"
+          aria-expanded="false"
+          aria-controls="site-nav"
+        >
+          <Icon name="menu" size={20} />
+          <span class="sr-only">Menu</span>
         </button>
       </div>
     </header>
@@ -165,8 +210,7 @@ const navItems = [
       tabindex="-1"
     ></button>
     <aside class="sidebar" id="site-nav">
-      <nav aria-label="Main navigation">
-        <p class="nav-heading">Workspace</p>
+      <nav aria-label="Main navigation" class="main-nav">
         {navItems.map((item) => (
           <a
             class="nav-link"
@@ -184,6 +228,7 @@ const navItems = [
             class="path-sidebar"
             data-path-sidebar={path.id}
             data-path-context={path.id}
+            data-progress-scope
             hidden={path.id !== defaultPath?.id}
           >
             <p class="nav-heading">Learning path</p>
@@ -191,39 +236,61 @@ const navItems = [
               {path.title}
             </a>
             <p class="path-count">
-              {pathLessonIds(path).length} lessons · At your own pace
+              <span data-progress-text>
+                {pathLessonIds(path).length} lessons
+              </span>
             </p>
+            <div
+              class="progress js-only"
+              role="progressbar"
+              aria-label={`Progress in ${path.title}`}
+              aria-valuemin="0"
+              aria-valuemax={pathLessonIds(path).length}
+              aria-valuenow="0"
+              data-progress-bar
+            />
             <nav aria-label={`Lessons in ${path.title}`}>
               {pathSections(path).map((section) => (
                 <details class="path-section" open>
-                  <summary>{section.title}</summary>
-                  {section.lessons.map((id) => (
-                    <a
-                      class="lesson-link"
-                      href={lessonUrl(
-                        id,
-                        lessons.find((lesson) => lesson.id === id)?.data
-                          .path === path.id
-                          ? undefined
-                          : path.id,
-                      )}
-                      aria-current={
-                        currentLesson?.id === id ? 'page' : undefined
-                      }
-                    >
-                      <span class="lesson-number">
-                        {String(pathLessonIds(path).indexOf(id) + 1).padStart(
-                          2,
-                          '0',
-                        )}
-                      </span>
-                      {
-                        lessons
-                          .find((lesson) => lesson.id === id)
-                          ?.data.title.split(':')[0]
-                      }
-                    </a>
-                  ))}
+                  <summary>
+                    {section.title}
+                    <Icon name="chevron-down" size={14} />
+                  </summary>
+                  <ol>
+                    {section.lessons.map((id) => {
+                      const lesson = lessonById.get(id)!;
+                      return (
+                        <li>
+                          <a
+                            class="lesson-link"
+                            href={lessonUrlIn(lesson, path.id)}
+                            data-lesson-id={id}
+                            data-label={lessonLabel(lesson)}
+                            aria-current={
+                              currentLesson?.id === id ? 'page' : undefined
+                            }
+                          >
+                            <span class="lesson-marker" aria-hidden="true">
+                              <span class="lesson-number">
+                                {String(
+                                  pathLessonIds(path).indexOf(id) + 1,
+                                ).padStart(2, '0')}
+                              </span>
+                              <Icon
+                                name="check"
+                                size={13}
+                                class="lesson-check"
+                              />
+                            </span>
+                            {lessonLabel(lesson)}
+                            <span class="sr-only" data-complete-label hidden>
+                              (completed)
+                            </span>
+                          </a>
+                        </li>
+                      );
+                    })}
+                  </ol>
                 </details>
               ))}
             </nav>
@@ -241,40 +308,25 @@ const navItems = [
                 </select>
               </div>
             )}
-            <a class="back-to-library" href="/explore/">
-              ← All subjects
+            <a class="sidebar-back" href="/explore/">
+              <Icon name="arrow-left" size={15} /> All subjects
             </a>
           </div>
         ))
       ) : (
         <nav class="subject-navigation" aria-label="Browse subjects">
-          <p class="nav-heading">Browse by subject</p>
-          {visibleCategories
-            .filter((category) => !category.parent)
-            .map((category) => (
-              <div class="subject-group">
-                <a
-                  class="category-link"
-                  href={`/explore/?category=${category.id}`}
-                >
-                  {category.title}
-                </a>
-              </div>
-            ))}
-          <a class="back-to-library" href="/explore/">
-            View the library <Icon name="arrow" size={15} />
+          <p class="nav-heading">Browse</p>
+          {rootCategories.map((category) => (
+            <a class="category-link" href={categoryUrl(category.id)}>
+              {category.title}
+              <Icon name="chevron-right" size={14} />
+            </a>
+          ))}
+          <a class="sidebar-back" href="/explore/">
+            View the library <Icon name="arrow-right" size={15} />
           </a>
         </nav>
       )}
-      <div class="sidebar-note">
-        <span class="loop-symbol" aria-hidden="true">
-          ↻
-        </span>
-        <div>
-          <strong>A little, understood well.</strong>
-          <p>Learn. Experiment. Practise. Revisit.</p>
-        </div>
-      </div>
     </aside>
     <div class="workspace">
       <main id="main" tabindex="-1">
@@ -282,16 +334,23 @@ const navItems = [
       </main>
       <footer>
         <span>Anvaya · Connect concepts. Build understanding.</span>
-        <span>Your personal learning library.</span>
+        <span>Progress is saved in this browser only.</span>
       </footer>
     </div>
     <script>
+      import { initProgressUI } from '../scripts/progress-ui';
       const select = document.querySelector<HTMLSelectElement>('#theme');
       const system = matchMedia('(prefers-color-scheme: dark)');
       const applyTheme = () => {
         const choice = select?.value ?? 'system';
-        document.documentElement.dataset.theme =
+        const root = document.documentElement;
+        // Switch colors instantly instead of animating every control.
+        root.classList.add('theme-switching');
+        root.dataset.theme =
           choice === 'system' ? (system.matches ? 'dark' : 'light') : choice;
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => root.classList.remove('theme-switching')),
+        );
       };
       if (select) {
         try {
@@ -351,17 +410,37 @@ const navItems = [
         if (event.target instanceof Node && !explore?.contains(event.target))
           explore?.removeAttribute('open');
       });
+      const search = document.querySelector<HTMLInputElement>(
+        '.global-search input',
+      );
       document.addEventListener('keydown', (event) => {
-        if (event.key !== 'Escape') return;
-        if (toggle?.getAttribute('aria-expanded') === 'true') {
-          close();
-          toggle.focus();
+        if (event.key === 'Escape') {
+          if (toggle?.getAttribute('aria-expanded') === 'true') {
+            close();
+            toggle.focus();
+          }
+          if (explore?.open) {
+            explore.open = false;
+            explore.querySelector('summary')?.focus();
+          }
+          return;
         }
-        if (explore?.open) {
-          explore.open = false;
-          explore.querySelector('summary')?.focus();
+        const target = event.target as HTMLElement;
+        const typing =
+          target.isContentEditable ||
+          ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName);
+        if (
+          event.key === '/' &&
+          !typing &&
+          !event.metaKey &&
+          !event.ctrlKey &&
+          search?.offsetParent
+        ) {
+          event.preventDefault();
+          search.focus();
         }
       });
+      initProgressUI();
     </script>
   </body>
 </html>
@@ -369,160 +448,181 @@ const navItems = [
   .skip {
     position: fixed;
     top: -100px;
-    left: 1rem;
+    left: var(--space-4);
     z-index: 100;
+    padding: var(--space-3);
+    border-radius: var(--radius-sm);
     background: var(--surface);
-    padding: 0.7rem;
   }
   .skip:focus {
-    top: 0.8rem;
+    top: var(--space-3);
   }
   .topbar {
     position: sticky;
     top: 0;
     z-index: 40;
-    height: var(--header-height);
     display: flex;
     align-items: center;
-    padding: 0 1.5rem;
-    gap: 1.7rem;
-    background: var(--surface);
+    gap: var(--space-6);
+    height: var(--header-height);
+    padding: 0 var(--space-5);
     border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    backdrop-filter: blur(8px);
   }
   .brand {
     display: flex;
-    gap: 0.6rem;
-    align-items: center;
     flex-shrink: 0;
-    font-size: 1.15rem;
-    font-weight: 720;
-    letter-spacing: -0.04em;
-    text-decoration: none;
+    align-items: center;
+    gap: var(--space-2);
+    width: calc(var(--sidebar-width) - var(--space-5) - var(--space-6));
     color: var(--text);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    text-decoration: none;
   }
   .explore-menu {
     position: relative;
-    padding: 0;
-    margin: 0;
-    border: 0;
-    background: none;
     flex-shrink: 0;
   }
   .explore-menu summary {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.55rem 0.7rem;
-    font-size: 0.86rem;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    font-weight: 550;
     list-style: none;
-    border-radius: 6px;
-    margin: 0;
+    cursor: pointer;
   }
   .explore-menu summary::-webkit-details-marker {
     display: none;
   }
   .explore-menu[open] summary,
   .explore-menu summary:hover {
-    background: var(--accent-soft);
-    color: var(--accent);
+    background: var(--subtle);
   }
   .explore-popover {
     position: absolute;
-    top: calc(100% + 14px);
+    top: calc(100% + var(--space-3));
     left: 0;
-    width: 335px;
-    padding: 1.25rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: 0 12px 30px #0002;
+    width: 340px;
     max-height: calc(100dvh - 100px);
     overflow: auto;
+    padding: var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-lg);
   }
   .explore-popover a {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: var(--text-sm);
     text-decoration: none;
-    font-size: 0.86rem;
-    padding: 0.6rem;
-    border-radius: 5px;
   }
   .explore-popover a:hover {
     background: var(--subtle);
   }
-  .explore-popover .eyebrow {
-    margin-bottom: 0.5rem;
-    font-size: 0.65rem;
-  }
   .explore-all {
     justify-content: space-between;
-    font-weight: 650;
+    font-weight: 600;
   }
   .explore-group {
-    margin-top: 0.5rem;
-    padding-top: 0.5rem;
+    margin-top: var(--space-2);
+    padding-top: var(--space-2);
     border-top: 1px solid var(--border);
   }
-  .explore-group > a:first-child {
+  .explore-popover .explore-category {
     color: var(--muted);
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
+    font-weight: 650;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .explore-group ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .explore-group .icon-tile {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+  }
+  .explore-popover .explore-more {
+    color: var(--accent);
   }
   .global-search {
     display: flex;
     align-items: center;
-    width: min(450px, 40vw);
-    gap: 0.6rem;
-    padding-left: 0.8rem;
+    gap: var(--space-2);
+    width: min(440px, 38vw);
+    padding: 0 var(--space-2) 0 var(--space-3);
     border: 1px solid var(--border);
-    border-radius: 7px;
+    border-radius: var(--radius);
     background: var(--bg);
     color: var(--muted);
   }
   .global-search:focus-within {
     border-color: var(--accent);
     outline: 2px solid var(--focus);
-    outline-offset: 2px;
+    outline-offset: 1px;
   }
   .global-search input {
+    width: 100%;
+    min-width: 0;
+    min-height: 38px;
+    padding: 0;
     border: 0;
     outline: none;
     background: none;
-    width: 100%;
-    min-width: 0;
-    padding: 0.55rem 0;
-    font-size: 0.8rem;
-  }
-  .global-search input::placeholder {
-    color: var(--muted);
-    opacity: 1;
-  }
-  .global-search button {
-    display: grid;
-    place-items: center;
-    border: 0;
-    background: none;
-    min-height: 36px;
-    padding: 0.5rem 0.7rem;
+    font-size: var(--text-sm);
   }
   .header-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
     margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
   }
-  .theme-label {
+  .icon-button {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    min-height: 40px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text);
+  }
+  .icon-button:hover {
+    background: var(--subtle);
+  }
+  .theme-control {
+    position: relative;
     display: flex;
-    gap: 0.6rem;
     align-items: center;
-    font-size: 0.75rem;
     color: var(--muted);
   }
-  .theme-label select {
-    padding: 0.4rem 0.45rem;
+  .theme-control :global(.icon) {
+    position: absolute;
+    left: var(--space-3);
+    pointer-events: none;
+  }
+  .theme-control select {
     min-height: 36px;
-    font-size: 0.78rem;
-    background: var(--bg);
+    padding: var(--space-1) var(--space-2) var(--space-1) var(--space-8);
+    border-color: var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: var(--text-sm);
   }
   #menu-toggle,
   .mobile-search {
@@ -532,226 +632,240 @@ const navItems = [
     position: fixed;
     top: var(--header-height);
     bottom: 0;
-    width: var(--sidebar-width);
-    padding: 1.6rem 1rem 1rem;
     display: flex;
     flex-direction: column;
+    width: var(--sidebar-width);
     overflow-y: auto;
-    background: var(--surface);
+    padding: var(--space-5) var(--space-3);
     border-right: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .main-nav {
+    display: grid;
+    gap: 2px;
   }
   .nav-heading {
-    margin: 0 0.65rem 0.6rem;
-    font-size: 0.64rem;
-    font-weight: 650;
-    letter-spacing: 0.085em;
-    text-transform: uppercase;
+    margin: 0 var(--space-3) var(--space-2);
     color: var(--muted);
+    font-size: var(--text-xs);
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }
   .nav-link {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
-    padding: 0.6rem 0.65rem;
-    margin: 0.15rem 0;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
     color: var(--muted);
+    font-size: var(--text-sm);
+    font-weight: 550;
     text-decoration: none;
-    border-radius: 6px;
-    font-size: 0.82rem;
   }
-  .nav-link:hover,
+  .nav-link:hover {
+    background: var(--subtle);
+    color: var(--text);
+  }
   .nav-link[aria-current] {
     background: var(--accent-soft);
     color: var(--accent);
-  }
-  .nav-link[aria-current] {
-    font-weight: 600;
+    font-weight: 650;
   }
   .subject-navigation,
   .path-sidebar {
-    margin-top: 1.6rem;
-    padding-top: 1.4rem;
+    margin-top: var(--space-5);
+    padding-top: var(--space-5);
     border-top: 1px solid var(--border);
   }
   .category-link {
-    display: block;
-    color: var(--muted);
-    padding: 0.5rem 0.65rem;
-    font-size: 0.75rem;
-    text-decoration: none;
-  }
-  .nav-subject {
-    display: block;
-    padding: 0.5rem 0.65rem 0.5rem 1.35rem;
-    border-left: 1px solid var(--border);
-    margin: 0.2rem 0 0.4rem 0.65rem;
-    font-size: 0.8rem;
-    color: var(--text);
-    text-decoration: none;
-  }
-  .nav-subject[aria-current],
-  .nav-subject:hover {
-    color: var(--accent);
-    border-color: var(--accent);
-  }
-  .back-to-library {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
-    margin: 1.3rem 0.65rem 0;
-    color: var(--muted);
-    font-size: 0.76rem;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: var(--text-sm);
     text-decoration: none;
   }
-  .back-to-library:hover {
+  .category-link:hover {
+    background: var(--subtle);
+  }
+  .sidebar-back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: var(--space-4) var(--space-3) 0;
+    color: var(--muted);
+    font-size: var(--text-sm);
+    text-decoration: none;
+  }
+  .sidebar-back:hover {
     color: var(--accent);
   }
   .path-title {
     display: block;
-    padding: 0.25rem 0.65rem;
+    padding: 0 var(--space-3);
     color: var(--text);
-    font-size: 0.88rem;
+    font-size: var(--text-base);
     font-weight: 650;
+    line-height: var(--leading-snug);
     text-decoration: none;
   }
-  .path-count {
-    font-size: 0.7rem;
-    margin: 0.35rem 0.65rem 1rem;
-    color: var(--muted);
+  .path-title:hover {
+    color: var(--accent);
   }
-  .path-section {
-    padding: 0;
-    margin: 0.4rem 0;
-    border: 0;
-    background: none;
+  .path-count {
+    margin: var(--space-1) var(--space-3) var(--space-2);
+    color: var(--muted);
+    font-size: var(--text-xs);
+  }
+  .path-sidebar .progress {
+    margin: 0 var(--space-3) var(--space-3);
   }
   .path-section summary {
-    padding: 0.55rem 0.65rem;
-    font-size: 0.76rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-3);
     color: var(--muted);
-    margin-bottom: 0.2rem;
+    font-size: var(--text-xs);
+    font-weight: 650;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    list-style: none;
+    cursor: pointer;
+  }
+  .path-section summary::-webkit-details-marker {
+    display: none;
+  }
+  .path-section:not([open]) summary :global(.icon) {
+    transform: rotate(-90deg);
+  }
+  .path-section ol {
+    margin: 0 0 var(--space-2);
+    padding: 0;
+    list-style: none;
   }
   .lesson-link {
     display: flex;
-    gap: 0.75rem;
     align-items: center;
-    padding: 0.65rem 0.6rem;
-    text-decoration: none;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
     color: var(--muted);
-    font-size: 0.8rem;
-    border-radius: 5px;
-    border-left: 2px solid transparent;
+    font-size: var(--text-sm);
+    text-decoration: none;
   }
-  .lesson-link[aria-current],
   .lesson-link:hover {
+    background: var(--subtle);
+    color: var(--text);
+  }
+  .lesson-link[aria-current] {
     background: var(--accent-soft);
     color: var(--accent);
-    border-left-color: var(--accent);
+    font-weight: 600;
+  }
+  .lesson-marker {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-full);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+  .lesson-marker :global(.lesson-check) {
+    display: none;
+  }
+  .lesson-link[data-complete] .lesson-marker {
+    border-color: var(--success);
+    background: var(--success);
+    color: var(--surface);
+  }
+  .lesson-link[data-complete] .lesson-number {
+    display: none;
+  }
+  .lesson-link[data-complete] :global(.lesson-check) {
+    display: block;
   }
   .lesson-number {
-    font: 0.67rem var(--font-mono);
+    font-size: var(--text-xs);
   }
   .path-switcher {
-    margin: 1rem 0.65rem;
+    margin: var(--space-4) var(--space-3);
   }
   .path-switcher label {
     display: block;
-    font-size: 0.72rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-2);
+    font-size: var(--text-xs);
   }
   .path-switcher select {
     width: 100%;
-    font-size: 0.75rem;
-  }
-  .sidebar-note {
-    display: flex;
-    align-items: start;
-    gap: 0.6rem;
-    margin-top: auto;
-    padding: 3rem 0.65rem 0.5rem;
-    font-size: 0.68rem;
-    color: var(--muted);
-  }
-  .sidebar-note strong {
-    font-weight: 550;
-  }
-  .sidebar-note p {
-    font-size: 0.65rem;
-    margin: 0.3rem 0 0;
-    line-height: 1.6;
-  }
-  .loop-symbol {
-    color: var(--accent);
-    font-size: 1.2rem;
-    line-height: 1;
+    font-size: var(--text-sm);
   }
   .workspace {
-    margin-left: var(--sidebar-width);
     min-width: 0;
+    margin-left: var(--sidebar-width);
   }
   main {
-    padding: clamp(1.25rem, 3vw, 3rem);
-    max-width: 1440px;
-    margin: auto;
+    max-width: var(--content-max);
     min-width: 0;
-    min-height: calc(100dvh - 140px);
+    min-height: calc(100dvh - 120px);
+    margin: auto;
+    padding: var(--space-8) clamp(var(--space-5), 4vw, var(--space-10))
+      var(--space-12);
     outline: none;
   }
   footer {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    gap: 1rem;
-    padding: 1.3rem 2.5rem;
+    gap: var(--space-4);
+    padding: var(--space-5) var(--space-10);
     border-top: 1px solid var(--border);
     color: var(--muted);
-    font-size: 0.7rem;
+    font-size: var(--text-xs);
   }
   .menu-backdrop {
     position: fixed;
-    z-index: 29;
     inset: var(--header-height) 0 0;
+    z-index: 29;
     width: 100%;
-    background: #06132666;
     border: 0;
     border-radius: 0;
+    background: var(--backdrop);
+  }
+  @media (max-width: 1100px) {
+    .topbar {
+      gap: var(--space-4);
+    }
+    .brand {
+      width: auto;
+    }
   }
   @media (max-width: 1000px) {
-    .topbar {
-      gap: 1rem;
-    }
-    .theme-label > span {
-      display: none;
-    }
     :root {
-      --sidebar-width: 225px;
+      --sidebar-width: 228px;
     }
   }
   @media (max-width: 760px) {
     .topbar {
-      padding: 0 1rem;
-      gap: 0.7rem;
-    }
-    .brand {
-      font-size: 1.1rem;
-      gap: 0.5rem;
+      gap: var(--space-2);
+      padding: 0 var(--space-3) 0 var(--space-4);
     }
     .global-search,
     .explore-menu {
       display: none;
     }
     .mobile-search {
-      display: grid;
-      place-items: center;
-      min-height: 36px;
-      min-width: 30px;
+      display: inline-grid;
       color: var(--muted);
     }
     :global(.js) #menu-toggle {
-      display: block;
-      min-height: 36px;
-      padding: 0.45rem 0.6rem;
-      font-size: 0.75rem;
+      display: inline-grid;
     }
     .sidebar {
       position: static;
@@ -760,11 +874,11 @@ const navItems = [
       border-bottom: 1px solid var(--border);
     }
     :global(.js) .sidebar {
-      display: none;
       position: fixed;
-      width: min(320px, calc(100vw - 24px));
       z-index: 30;
-      box-shadow: 12px 0 30px #0002;
+      display: none;
+      width: min(320px, calc(100vw - 24px));
+      box-shadow: var(--shadow-lg);
     }
     :global(.js) .sidebar.open {
       display: flex;
@@ -772,11 +886,11 @@ const navItems = [
     .workspace {
       margin-left: 0;
     }
-    footer {
-      padding: 1.3rem;
+    main {
+      padding-top: var(--space-6);
     }
-    .sidebar-note {
-      padding-top: 2rem;
+    footer {
+      padding: var(--space-5);
     }
   }
   @media print {

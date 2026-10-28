@@ -1,0 +1,8 @@
+title: Remove Element
+url: https://leetcode.com/problems/remove-element/
+difficulty: easy
+lessons: [dsa/arrays]
+topics: [arrays, in-place]
+hints:
+  - Shifting the suffix after every removal costs O(n) per removal. Can you avoid shifting entirely?
+  - Keep a write index. Copy each value that should stay to that index and advance it; the write index is the new length.

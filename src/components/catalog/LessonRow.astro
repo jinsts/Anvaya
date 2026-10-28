@@ -1,0 +1,132 @@
+---
+import Icon from '../ui/Icon.astro';
+import { capitalize } from '../../lib/format';
+import { lessonLabel, lessonUrlIn, type Lesson } from '../../lib/catalog';
+interface Props {
+  lesson: Lesson;
+  number?: number;
+  pathId?: string;
+}
+const { lesson, number, pathId } = Astro.props;
+---
+
+<li class="lesson-row">
+  <a
+    class="row-link"
+    href={lessonUrlIn(lesson, pathId)}
+    data-lesson-id={lesson.id}
+    data-label={lessonLabel(lesson)}
+  >
+    <span class="row-marker" aria-hidden="true">
+      <span class="row-number">
+        {number ? (
+          String(number).padStart(2, '0')
+        ) : (
+          <Icon name="book-open" size={16} />
+        )}
+      </span>
+      <Icon name="check" size={16} class="row-check" />
+    </span>
+    <span class="row-body">
+      <span class="row-title">{lesson.data.title}</span>
+      <span class="row-summary">{lesson.data.summary}</span>
+    </span>
+    <span class="row-meta">
+      <span class="badge">{capitalize(lesson.data.difficulty)}</span>
+      <span class="row-minutes">
+        <Icon name="clock" size={14} />
+        {lesson.data.estimatedMinutes} min
+      </span>
+      {lesson.data.status === 'draft' && (
+        <span class="badge" data-variant="draft">
+          Draft
+        </span>
+      )}
+    </span>
+    <span class="sr-only" data-complete-label hidden>
+      (completed)
+    </span>
+  </a>
+</li>
+<style>
+  .lesson-row + .lesson-row {
+    border-top: 1px solid var(--border);
+  }
+  .row-link {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    color: inherit;
+    text-decoration: none;
+    transition: background-color 0.15s;
+  }
+  .row-link:hover {
+    background: var(--subtle);
+  }
+  .row-marker {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-full);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+  .row-marker :global(.row-check) {
+    display: none;
+  }
+  .row-link[data-complete] .row-marker {
+    border-color: var(--success);
+    background: var(--success);
+    color: var(--surface);
+  }
+  .row-link[data-complete] .row-number {
+    display: none;
+  }
+  .row-link[data-complete] .row-marker :global(.row-check) {
+    display: block;
+  }
+  .row-body {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+  .row-title {
+    font-weight: 600;
+  }
+  .row-link:hover .row-title {
+    color: var(--accent);
+  }
+  .row-summary {
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+  .row-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    color: var(--muted);
+    font-size: var(--text-xs);
+  }
+  .row-minutes {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+  @media (max-width: 700px) {
+    .row-link {
+      grid-template-columns: auto minmax(0, 1fr);
+      padding: var(--space-4);
+    }
+    .row-meta {
+      grid-column: 2;
+      justify-content: flex-start;
+    }
+  }
+</style>

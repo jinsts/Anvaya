@@ -11,7 +11,7 @@ repository root first. No cloud accounts, downloaded exercise packages or secret
    `[12,24,36,48]`, index 2 returns 36 and leaves `[12,24,48]`. Indices must be
    integers in `[0, length)`; otherwise throw `RangeError` without mutation.
 
-From the root, run `pnpm lab:arrays` to test **your starter**, including empty,
+From the root, run `pnpm lab dsa/arrays` to test **your starter**, including empty,
 single-element, duplicate, first/last and invalid-index cases. It intentionally
 fails while the TODOs remain. This attempt suite is excluded from the normal
 quality gate; `pnpm test:labs` validates the separately supplied reference solution.

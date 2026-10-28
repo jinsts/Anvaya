@@ -1,24 +1,35 @@
 ---
 import { Code } from 'astro:components';
+import Icon from '../ui/Icon.astro';
 interface Props {
   code: string;
   output?: string;
   language?: 'ts' | 'js' | 'bash';
   title: string;
+  /** Set only when a test or command actually checks `output`. */
+  verified?: boolean;
 }
-const { code, output, language = 'ts', title } = Astro.props;
+const { code, output, language = 'ts', title, verified = false } = Astro.props;
+const languageName = { ts: 'TypeScript', js: 'JavaScript', bash: 'Shell' };
 ---
 
-<div class="code-example">
-  <div class="code-label">
-    <span>
-      {title} · {language === 'ts' ? 'TypeScript' : language}
+<figure class="code-example">
+  <figcaption class="code-header">
+    <span class="code-title">
+      <Icon name="code" size={16} /> {title}
     </span>
-    <button class="copy-code" data-code={code} aria-label={`Copy ${title}`}>
-      Copy
+    <span class="code-language">{languageName[language]}</span>
+    <button
+      type="button"
+      class="copy-code"
+      data-code={code}
+      aria-label={`Copy ${title}`}
+    >
+      <Icon name="copy" size={15} />
+      <span data-copy-label>Copy</span>
     </button>
     <span class="copy-status sr-only" role="status"></span>
-  </div>
+  </figcaption>
   <Code
     code={code}
     lang={language}
@@ -29,55 +40,91 @@ const { code, output, language = 'ts', title } = Astro.props;
   />
   {output && (
     <div class="output">
-      <span class="eyebrow">Expected output · verified in tests</span>
+      <p class="output-label">
+        <Icon name={verified ? 'circle-check' : 'info'} size={15} />
+        {verified ? 'Expected output · verified by tests' : 'Expected output'}
+      </p>
       <pre>{output}</pre>
     </div>
   )}
-</div>
+</figure>
 <script>
   document.querySelectorAll<HTMLButtonElement>('.copy-code').forEach((button) =>
     button.addEventListener('click', async () => {
       const status = button.parentElement?.querySelector('.copy-status');
+      const label = button.querySelector('[data-copy-label]');
       try {
         await navigator.clipboard.writeText(button.dataset.code ?? '');
         if (status) status.textContent = 'Code copied.';
-        button.textContent = 'Copied';
+        if (label) label.textContent = 'Copied';
       } catch {
         if (status)
           status.textContent =
             'Copy unavailable. Select the code to copy it manually.';
-        button.textContent = 'Select code below';
+        if (label) label.textContent = 'Select manually';
       }
     }),
   );
 </script>
 <style>
   .code-example {
-    margin: 1.5rem 0;
+    margin: var(--space-6) 0;
     min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--code-bg);
   }
-  .code-label {
+  .code-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    font-size: 0.72rem;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--border);
+    background: var(--subtle);
+    font-size: var(--text-sm);
+  }
+  .code-title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    font-weight: 600;
+  }
+  .code-language {
+    margin-left: auto;
     color: var(--muted);
+    font-size: var(--text-xs);
   }
   .copy-code {
-    min-height: 44px;
-    padding: 0.3rem 0.8rem;
-    font-size: 0.75rem;
+    min-height: 32px;
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--text-xs);
+  }
+  .code-example :global(pre) {
+    border: 0;
+    border-radius: 0;
   }
   .output {
-    border-left: 3px solid var(--success);
-    padding: 0.5rem 1rem;
+    border-top: 1px solid var(--border);
+    background: var(--success-soft);
+  }
+  .output-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    padding: var(--space-2) var(--space-4) 0;
+    color: var(--success);
+    font-size: var(--text-xs);
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
   .output pre {
-    margin: 0.5rem 0;
-    padding: 0;
+    padding: var(--space-2) var(--space-4) var(--space-4);
     border: 0;
+    background: transparent;
     white-space: pre-wrap;
-    font-size: 0.8rem;
   }
 </style>

@@ -1,0 +1,16 @@
+title: Data Structures & Algorithms
+description: Understand how data is organized. Learn to reason about the work your code does.
+subject: dsa
+order: 1
+sections:
+  - id: foundations
+    title: Foundations
+    lessons:
+      - dsa/arrays
+      - dsa/hash-maps
+    # Owner-approved topics from the bootstrap hierarchy (§3.1) and verification notes.
+    planned:
+      - Two pointers
+      - Linked lists
+      - Stacks & queues
+      - Trees & graphs

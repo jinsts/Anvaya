@@ -1,30 +1,96 @@
 ---
+import ArrowLeft from '@lucide/astro/icons/arrow-left';
+import ArrowRight from '@lucide/astro/icons/arrow-right';
+import Binary from '@lucide/astro/icons/binary';
+import BookOpen from '@lucide/astro/icons/book-open';
+import Braces from '@lucide/astro/icons/braces';
+import Brain from '@lucide/astro/icons/brain';
+import Check from '@lucide/astro/icons/check';
+import ChevronDown from '@lucide/astro/icons/chevron-down';
+import ChevronRight from '@lucide/astro/icons/chevron-right';
+import CircleCheck from '@lucide/astro/icons/circle-check';
+import CircleDashed from '@lucide/astro/icons/circle-dashed';
+import Clock from '@lucide/astro/icons/clock';
+import Code from '@lucide/astro/icons/code';
+import Compass from '@lucide/astro/icons/compass';
+import Copy from '@lucide/astro/icons/copy';
+import Download from '@lucide/astro/icons/download';
+import ExternalLink from '@lucide/astro/icons/external-link';
+import FlaskConical from '@lucide/astro/icons/flask-conical';
+import GraduationCap from '@lucide/astro/icons/graduation-cap';
+import House from '@lucide/astro/icons/house';
+import Info from '@lucide/astro/icons/info';
+import Layers from '@lucide/astro/icons/layers';
+import Library from '@lucide/astro/icons/library';
+import Lightbulb from '@lucide/astro/icons/lightbulb';
+import Menu from '@lucide/astro/icons/menu';
+import MessageCircleQuestion from '@lucide/astro/icons/message-circle-question-mark';
+import Network from '@lucide/astro/icons/network';
+import Pause from '@lucide/astro/icons/pause';
+import Play from '@lucide/astro/icons/play';
+import Route from '@lucide/astro/icons/route';
+import Search from '@lucide/astro/icons/search';
+import Signal from '@lucide/astro/icons/signal';
+import SunMoon from '@lucide/astro/icons/sun-moon';
+import Target from '@lucide/astro/icons/target';
+import Timer from '@lucide/astro/icons/timer';
+import Trash from '@lucide/astro/icons/trash';
+import TriangleAlert from '@lucide/astro/icons/triangle-alert';
+import Upload from '@lucide/astro/icons/upload';
+import type { IconName } from '../../lib/icons';
+
 interface Props {
-  name: 'home' | 'explore' | 'path' | 'search' | 'arrow' | 'chevron' | 'book';
+  name: IconName;
   size?: number;
+  class?: string;
 }
-const { name, size = 18 } = Astro.props;
-const shapes = {
-  home: 'm3 10 9-7 9 7M5 9v11h5v-6h4v6h5V9',
-  explore: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
-  path: 'M6 4v10a4 4 0 0 0 4 4h8m-4-4 4 4-4 4M3 4h6',
-  search: 'M16 16 21 21M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',
-  arrow: 'M5 12h14m-5-5 5 5-5 5',
-  chevron: 'm8 5 7 7-7 7',
-  book: 'M12 5v15M3 4c3-1 6-1 9 1 3-2 6-2 9-1v15c-3-1-6-1-9 1-3-2-6-2-9-1z',
-};
+const icons = {
+  'arrow-left': ArrowLeft,
+  'arrow-right': ArrowRight,
+  binary: Binary,
+  'book-open': BookOpen,
+  braces: Braces,
+  brain: Brain,
+  check: Check,
+  'chevron-down': ChevronDown,
+  'chevron-right': ChevronRight,
+  'circle-check': CircleCheck,
+  'circle-dashed': CircleDashed,
+  clock: Clock,
+  code: Code,
+  compass: Compass,
+  copy: Copy,
+  download: Download,
+  'external-link': ExternalLink,
+  'flask-conical': FlaskConical,
+  'graduation-cap': GraduationCap,
+  house: House,
+  info: Info,
+  layers: Layers,
+  library: Library,
+  lightbulb: Lightbulb,
+  menu: Menu,
+  'message-circle-question-mark': MessageCircleQuestion,
+  network: Network,
+  pause: Pause,
+  play: Play,
+  route: Route,
+  search: Search,
+  signal: Signal,
+  'sun-moon': SunMoon,
+  target: Target,
+  timer: Timer,
+  trash: Trash,
+  'triangle-alert': TriangleAlert,
+  upload: Upload,
+} satisfies Record<IconName, unknown>;
+const { name, size = 18, class: className } = Astro.props;
+const Component = icons[name];
 ---
 
-<svg
-  width={size}
-  height={size}
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  stroke-width="1.7"
-  stroke-linecap="round"
-  stroke-linejoin="round"
+<Component
+  size={size}
+  stroke-width={1.8}
   aria-hidden="true"
->
-  <path d={shapes[name]} />
-</svg>
+  class:list={['icon', className]}
+/>

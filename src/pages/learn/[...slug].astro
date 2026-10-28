@@ -1,6 +1,7 @@
 ---
 import { render } from 'astro:content';
 import { getCatalog } from '../../lib/catalog';
+import { lessonComponents } from '../../components/learning';
 import LessonLayout from '../../layouts/LessonLayout.astro';
 export async function getStaticPaths() {
   const { lessons } = await getCatalog();
@@ -14,5 +15,5 @@ const { Content, headings } = await render(lesson);
 ---
 
 <LessonLayout lesson={lesson} headings={headings}>
-  <Content />
+  <Content components={lessonComponents} />
 </LessonLayout>

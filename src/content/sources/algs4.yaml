@@ -1,0 +1,7 @@
+name: Algorithms, 4th Edition (book site)
+kind: book
+by: Robert Sedgewick and Kevin Wayne
+url: https://algs4.cs.princeton.edu/home/
+prefixes:
+  - https://algs4.cs.princeton.edu/
+description: Companion site for the Princeton algorithms textbook, with code and lecture material.

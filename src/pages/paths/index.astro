@@ -1,86 +1,52 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHeader from '../../components/ui/PageHeader.astro';
+import PathCard from '../../components/catalog/PathCard.astro';
+import Icon from '../../components/ui/Icon.astro';
 import { getCatalog } from '../../lib/catalog';
-import { pathLessonIds, pathUrl, subjectUrl } from '../../lib/path-model';
-const { paths, subjects } = await getCatalog();
+import { pathLessonIds } from '../../lib/path-model';
+const { paths, lessonById, subjectById } = await getCatalog();
+const activePaths = paths.filter((path) => pathLessonIds(path).length > 0);
 ---
 
 <BaseLayout title="Learning paths">
-  <header class="page-intro">
-    <span class="eyebrow">Learn with direction</span>
-    <h1>Learning paths</h1>
-    <p class="lede">
-      Follow a thoughtful sequence. Build the mental model before adding the
-      next layer.
-    </p>
-  </header>
-  <div class="card-grid">
-    {paths.map((path) => {
-      const subject = subjects.find((item) => item.id === path.subject)!;
-      return (
-        <section class="panel path-panel">
-          <span class="eyebrow">{pathLessonIds(path).length} lessons</span>
-          <h2>
-            <a href={pathUrl(path.id)}>{path.title}</a>
-          </h2>
-          <p class="muted">{path.description}</p>
-          <div class="path-footer">
-            <a href={subjectUrl(subject.id)}>{subject.title}</a>
-            <a href={pathUrl(path.id)}>Explore the path →</a>
-          </div>
-        </section>
-      );
-    })}
-  </div>
-  {paths.length === 0 && (
-    <p class="panel muted">
+  <PageHeader
+    title="Learning paths"
+    description="Follow a thoughtful sequence. Build each mental model before adding the next layer."
+    icon="route"
+  />
+  {activePaths.length ? (
+    <div class="card-grid">
+      {activePaths.map((path) => (
+        <PathCard
+          path={path}
+          subject={subjectById.get(path.subject)!}
+          lessons={pathLessonIds(path).map((id) => lessonById.get(id)!)}
+        />
+      ))}
+    </div>
+  ) : (
+    <p class="card empty-state">
       There aren’t any learning paths yet. You can still browse individual
       subjects.
     </p>
   )}
-  <div class="browse-prompt">
-    <p class="muted">Prefer to follow your own curiosity?</p>
-    <a href="/explore/">Explore all subjects →</a>
-  </div>
+  <p class="browse-prompt">
+    <Icon name="compass" size={18} />
+    <span>
+      Prefer to follow your own curiosity?{' '}
+      <a href="/explore/">Explore all subjects</a>.
+    </span>
+  </p>
 </BaseLayout>
 <style>
-  .path-panel {
-    padding: 1.5rem;
-  }
-  .path-panel h2 {
-    font-size: 1.3rem;
-    margin: 0.8rem 0;
-  }
-  .path-panel h2 a {
-    color: var(--text);
-    text-decoration: none;
-  }
-  .path-panel h2 a:hover {
-    color: var(--accent);
-  }
-  .path-panel p {
-    font-size: 0.88rem;
-  }
-  .path-footer {
+  .browse-prompt {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 1rem;
-    font-size: 0.78rem;
+    gap: var(--space-3);
+    margin-top: var(--space-10);
+    padding-top: var(--space-6);
     border-top: 1px solid var(--border);
-    padding-top: 1rem;
-  }
-  .path-footer a:first-child {
     color: var(--muted);
-  }
-  .browse-prompt {
-    border-top: 1px solid var(--border);
-    margin-top: 2rem;
-    padding-top: 1.5rem;
-    font-size: 0.85rem;
-  }
-  .browse-prompt p {
-    margin-bottom: 0.4rem;
   }
 </style>

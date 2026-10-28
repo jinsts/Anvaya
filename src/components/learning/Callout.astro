@@ -1,38 +1,59 @@
 ---
+import Icon from '../ui/Icon.astro';
 interface Props {
   title: string;
   variant?: 'info' | 'warning' | 'success';
 }
 const { title, variant = 'info' } = Astro.props;
+const icon = {
+  info: 'info',
+  warning: 'triangle-alert',
+  success: 'lightbulb',
+} as const;
 ---
 
 <aside class:list={['callout', variant]}>
-  <strong>{title}</strong>
+  <Icon name={icon[variant]} size={20} class="callout-icon" />
   <div>
+    <strong>{title}</strong>
     <slot />
   </div>
 </aside>
 <style>
   .callout {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-3);
+    max-width: var(--article-measure);
+    margin: var(--space-6) 0;
+    padding: var(--space-4) var(--space-5);
+    border: 1px solid color-mix(in srgb, var(--info) 25%, transparent);
+    border-radius: var(--radius);
     background: var(--info-soft);
+    font-size: var(--text-base);
+    line-height: var(--leading);
+  }
+  .callout :global(.callout-icon) {
+    margin-top: 0.15em;
     color: var(--info);
-    padding: 1.25rem;
-    border-left: 3px solid currentColor;
-    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-    margin: 1.5rem 0;
-    font-size: 0.9rem;
   }
   .callout.warning {
+    border-color: color-mix(in srgb, var(--warning) 30%, transparent);
     background: var(--warning-soft);
+  }
+  .callout.warning :global(.callout-icon) {
     color: var(--warning);
   }
   .callout.success {
+    border-color: color-mix(in srgb, var(--success) 30%, transparent);
     background: var(--success-soft);
+  }
+  .callout.success :global(.callout-icon) {
     color: var(--success);
   }
-  .callout strong {
+  strong {
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-1);
   }
   .callout :global(p:last-child) {
     margin-bottom: 0;

@@ -1,0 +1,5 @@
+name: Google SRE books
+kind: book
+by: Google
+url: https://sre.google/books/
+description: Site Reliability Engineering, The Site Reliability Workbook and related books, free to read online.

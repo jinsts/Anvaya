@@ -1,0 +1,7 @@
+name: NeetCode 150
+kind: problem-list
+by: NeetCode
+url: https://neetcode.io/practice
+prefixes:
+  - https://neetcode.io/
+description: A pattern-grouped extension of Blind 75. Membership is published in github.com/neetcode-gh/leetcode.

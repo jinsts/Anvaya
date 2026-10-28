@@ -1,0 +1,5 @@
+name: The Amazon Builders' Library
+kind: guide
+by: Amazon Web Services
+url: https://aws.amazon.com/builders-library/
+description: Articles by Amazon engineers on how they architect, release and operate distributed systems.

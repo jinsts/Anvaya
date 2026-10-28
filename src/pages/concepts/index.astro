@@ -1,175 +1,152 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import LessonCard from '../../components/learning/LessonCard.astro';
-import { getCatalog } from '../../lib/catalog';
-import { categoryAncestors, subjectUrl } from '../../lib/path-model';
-const { lessons, subjects, categories } = await getCatalog();
+import PageHeader from '../../components/ui/PageHeader.astro';
+import Icon from '../../components/ui/Icon.astro';
 ---
 
-<BaseLayout title="Find a concept">
-  <header class="page-intro">
-    <span class="eyebrow">Find your way back</span>
-    <h1>Find a concept</h1>
-    <p class="lede">
-      Search across your library. Find a lesson by title, subject, topic, or
-      tag.
+<BaseLayout title="Search">
+  <PageHeader
+    title="Search"
+    description="Find lessons, learning paths, subjects and practice across your library."
+    icon="search"
+  />
+  <form
+    class="search-form"
+    role="search"
+    aria-label="Library"
+    action="/concepts/"
+  >
+    <label for="search" class="sr-only">
+      Search the library
+    </label>
+    <Icon name="search" size={20} />
+    <input
+      id="search"
+      name="q"
+      type="search"
+      placeholder="Try arrays, collisions or amortized"
+      autocomplete="off"
+    />
+    <button id="clear-search" type="button" class="button-ghost" hidden>
+      Clear
+    </button>
+  </form>
+  <p id="search-status" class="muted" role="status"></p>
+  <ol id="results" class="results"></ol>
+  <div class="card empty-state" id="empty" hidden>
+    <h2>No matches yet</h2>
+    <p>
+      Try another word or a broader topic, or{' '}
+      <a href="/explore/">browse your subjects</a>.
     </p>
-  </header>
-  <section class="search-panel panel" aria-label="Search lessons">
-    <label for="search">What would you like to explore?</label>
-    <div class="search-field">
-      <span aria-hidden="true">⌕</span>
-      <input
-        id="search"
-        type="search"
-        placeholder="Try arrays, memory, or keys…"
-        autocomplete="off"
-      />
-      <button id="clear-search" type="button" hidden>
-        Clear
-      </button>
-    </div>
-    <p id="search-status" role="status" class="muted">
-      {lessons.length} lessons
-    </p>
-  </section>
-  <div class="card-grid" id="results">
-    {lessons.map((lesson) => {
-      const subject = subjects.find((item) => item.id === lesson.data.subject)!;
-      const trail = categoryAncestors(subject.category, categories);
-      const searchText =
-        `${lesson.data.title} ${lesson.data.summary} ${lesson.data.tags.join(' ')} ${subject.title} ${trail.map((category) => category.title).join(' ')}`.toLowerCase();
-      return (
-        <div class="concept-result" data-search={searchText}>
-          <p class="result-context">
-            {trail.map((category) => category.title).join(' / ')}{' '}
-            <span aria-hidden="true">/</span>{' '}
-            <a href={subjectUrl(subject.id)}>{subject.title}</a>
-          </p>
-          <LessonCard lesson={lesson} />
-        </div>
-      );
-    })}
   </div>
-  <div class="empty-state panel" id="empty" hidden>
-    <h2>No matching lessons yet</h2>
-    <p class="muted">
-      Try another title, subject, or tag, or browse your subjects to find a
-      starting point.
+  <noscript>
+    <p class="card">
+      Search needs JavaScript. <a href="/explore/">Browse subjects</a> or{' '}
+      <a href="/paths/">learning paths</a> instead.
     </p>
-    <a href="/explore/">Explore all subjects →</a>
-  </div>
+  </noscript>
 </BaseLayout>
 <script>
-  const input = document.querySelector<HTMLInputElement>('#search');
-  const cards = [...document.querySelectorAll<HTMLElement>('[data-search]')];
-  const clear = document.querySelector<HTMLButtonElement>('#clear-search');
-  function filterLessons() {
-    const query = input?.value.trim().toLowerCase() ?? '';
-    const terms = query.split(/\s+/).filter(Boolean);
-    let count = 0;
-    cards.forEach((card) => {
-      card.hidden = !terms.every((term) => card.dataset.search?.includes(term));
-      if (!card.hidden) count++;
-    });
-    const status = document.querySelector('#search-status');
-    if (status)
-      status.textContent = `${count} ${count === 1 ? 'lesson' : 'lessons'}`;
-    const empty = document.querySelector<HTMLElement>('#empty');
-    if (empty) empty.hidden = count > 0;
-    if (clear) clear.hidden = !query;
-    const url = new URL(location.href);
-    if (query) url.searchParams.set('q', input?.value.trim() ?? '');
-    else url.searchParams.delete('q');
-    history.replaceState(null, '', url);
-  }
-  if (input) input.value = new URLSearchParams(location.search).get('q') ?? '';
-  input?.addEventListener('input', filterLessons);
-  clear?.addEventListener('click', () => {
-    if (input) input.value = '';
-    filterLessons();
-    input?.focus();
-  });
-  window.addEventListener('popstate', () => {
-    if (input)
-      input.value = new URLSearchParams(location.search).get('q') ?? '';
-    filterLessons();
-  });
-  filterLessons();
+  import { initSearch } from '../../scripts/search';
+  initSearch();
 </script>
 <style>
-  .search-panel {
-    padding: 1.25rem;
-    margin-bottom: 1.5rem;
-    box-shadow: none;
-  }
-  label {
-    display: block;
-    font-size: 0.82rem;
-    font-weight: 600;
-    margin-bottom: 0.65rem;
-  }
-  .search-field {
+  .search-form {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    background: var(--bg);
-    padding: 0 0.8rem;
-  }
-  .search-field:focus-within {
-    border-color: var(--accent);
-  }
-  .search-field > span {
-    color: var(--muted);
-    font-size: 1.4rem;
-  }
-  input {
-    min-width: 0;
-    flex: 1;
-    border: 0;
-    background: transparent;
-    padding: 0.85rem 0;
-    font-size: 0.9rem;
-  }
-  input:focus-visible {
-    outline-offset: 2px;
-  }
-  .search-field button {
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
     background: var(--surface);
-    font-size: 0.72rem;
-    padding: 0.3rem 0.5rem;
-    min-height: 32px;
+    color: var(--muted);
+    box-shadow: var(--shadow-sm);
+  }
+  .search-form:focus-within {
+    border-color: var(--accent);
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+  }
+  .search-form input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    font-size: var(--text-lg);
   }
   #search-status {
-    font-size: 0.76rem;
-    margin: 0.7rem 0 0;
+    margin: var(--space-4) 0;
+    font-size: var(--text-sm);
   }
-  .concept-result {
-    min-width: 0;
+  .results {
+    display: grid;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .results :global(.result) {
+    padding: var(--space-4) var(--space-5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+  }
+  .results :global(.result-meta) {
     display: flex;
-    flex-direction: column;
-  }
-  .result-context {
-    font-size: 0.68rem;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-1);
     color: var(--muted);
-    margin: 0.2rem 0 0.7rem;
+    font-size: var(--text-xs);
   }
-  .result-context > span {
-    margin: 0 0.35rem;
+  .results :global(h2) {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-lg);
   }
-  .result-context a {
+  .results :global(h2 a) {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .results :global(h2 a:hover) {
+    color: var(--accent);
+  }
+  .results :global(.excerpt) {
+    margin: 0;
     color: var(--muted);
+    font-size: var(--text-sm);
+  }
+  .results :global(mark) {
+    padding: 0 0.1em;
+    border-radius: 3px;
+    background: var(--warning-soft);
+    color: var(--text);
+  }
+  .results :global(.sections) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: var(--space-3) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .results :global(.sections a) {
+    display: inline-flex;
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    text-decoration: none;
+  }
+  .results :global(.sections a:hover) {
+    border-color: var(--accent);
   }
   .empty-state h2 {
-    font-size: 1.2rem;
+    font-size: var(--text-lg);
   }
-  .empty-state p,
-  .empty-state a {
-    font-size: 0.85rem;
-  }
-  [hidden] {
-    display: none !important;
+  .empty-state p {
+    margin: 0;
   }
 </style>

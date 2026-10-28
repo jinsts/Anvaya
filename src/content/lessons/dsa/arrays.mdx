@@ -1,5 +1,6 @@
 ---
 title: 'Arrays: Think in indices'
+shortTitle: Arrays
 summary: 'Understand indexed storage, explore the cost of moving values, and build a mental model you can test.'
 subject: dsa
 path: dsa-foundations
@@ -12,6 +13,53 @@ learningObjectives:
 prerequisites: []
 tags: [arrays, memory, complexity]
 status: draft
+drafter: agent
+interviewQuestions:
+  - prompt: Why is reading `values[i]` O(1) in the textbook array model, and which assumptions make that true?
+    answer: >-
+      Cells are contiguous and fixed-width, so the address is `base + i × width`:
+      one arithmetic step, no scan. The bound assumes the unit-cost RAM model and a
+      dense array. Real hardware adds caching, so O(1) does not mean identical
+      latency, and JavaScript does not promise contiguous storage for ordinary arrays.
+    followUps:
+      - How does reaching a position in a linked list differ?
+      - What changes if the cells store references to objects?
+  - prompt: Appending to a dynamic array is amortized O(1). What does that mean, and when is a single append still slow?
+    answer: >-
+      With geometric growth such as doubling, the copying done by resizes over m
+      appends sums to less than a constant times m, so the cost per append across
+      the sequence is O(1). An append that triggers a resize still copies all n
+      values, which is O(n) and briefly needs both buffers. Growing by a constant
+      amount instead makes m appends cost O(m²) in total.
+    followUps:
+      - Why must the growth be geometric rather than additive?
+      - How would you shrink capacity without causing repeated resizes?
+  - prompt: What does inserting at index 0 of a length-n array cost, even when there is spare capacity?
+    answer: >-
+      O(n). Every existing value shifts one place right to keep the order, moving
+      from the end backwards so nothing is overwritten. Spare capacity only avoids
+      the resize; it does not avoid the shift. Inserting at index n shifts nothing,
+      so the cost depends on the position.
+    followUps:
+      - Which structure supports cheap insertion at both ends?
+      - How does the cost change if order does not matter?
+  - prompt: How do you remove a value from the middle of an array, and how can removal be O(1) when order does not matter?
+    answer: >-
+      To preserve order, shift every later value one place left and shorten the
+      length, which is O(n − i). If order does not matter, overwrite the removed
+      slot with the last value and shorten the length by one, which is O(1). State
+      the trade-off: the second approach moves another value to a new position.
+    followUps:
+      - Which problems allow reordering, and which require a stable order?
+  - prompt: When would you choose an array over a hash map or a linked list?
+    answer: >-
+      Choose an array when you access values by position, scan in order, or append
+      at the end; a dense array is compact and has good locality. Choose a hash map
+      when the main question is lookup by key. A linked list can insert after a node
+      you already hold in O(1), but reaching an arbitrary position takes O(n).
+      Decide from the operations you repeat most.
+    followUps:
+      - What does an array cost you if you frequently insert at the front?
 sources:
   - label: 'ECMAScript specification — Array objects'
     url: 'https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array-objects'
@@ -21,11 +69,6 @@ sources:
 
 import ArrayExplorer from '../../../components/interactive/ArrayExplorer';
 import IndexedMemory from '../../../components/diagrams/IndexedMemory.astro';
-import Callout from '../../../components/learning/Callout.astro';
-import CodeExample from '../../../components/learning/CodeExample.astro';
-import ConceptCheck from '../../../components/learning/ConceptCheck.astro';
-import ComplexityTable from '../../../components/learning/ComplexityTable.astro';
-import LabCard from '../../../components/learning/LabCard.astro';
 import operationsSource from '../../../lib/array-operations.ts?raw';
 import workedSource from '../../../../labs/dsa/arrays/examples.ts?raw';
 
@@ -161,6 +204,7 @@ an otherwise constant-time update.
 <CodeExample
   title="Worked example"
   code={workedSource}
+  verified
   output={
     'inserted: [12, 24, 30, 36, 48]\nread: 30\nremoved: 36\nfinal: [12, 24, 30, 48]'
   }
@@ -175,7 +219,50 @@ Let `n` be length before an operation and `i` its index. Count reads, writes, an
 comparisons before reaching for Big-O. Insert at index 0 shifts n values; insert
 at n shifts none. With no resize, these cost O(n) and O(1), respectively.
 
-<ComplexityTable />
+<ComplexityTable
+  label="Array operation complexity"
+  caption="Dense textbook dynamic array · n values · index i"
+  rows={[
+    {
+      operation: 'Read / update by index',
+      time: 'O(1)',
+      notes: 'Address calculation; O(1) space.',
+    },
+    {
+      operation: 'Traverse all values',
+      time: 'Θ(n)',
+      notes: 'Visit every value; O(1) space without collecting output.',
+    },
+    {
+      operation: 'Unsorted linear search',
+      time: 'O(1) best; O(n) worst; Θ(n) average*',
+      notes: 'Stop at a match, or scan all values; O(1) space.',
+    },
+    {
+      operation: 'Append with doubling',
+      time: 'O(1) amortized; O(n) worst',
+      notes:
+        'Resize occasionally copies n values; O(n) temporary space during growth.',
+    },
+    {
+      operation: 'Insert at i',
+      time: 'O(1 + n − i) without growth; O(n) worst',
+      notes: 'Shift suffix right; O(1) space without growth, O(n) if resizing.',
+    },
+    {
+      operation: 'Remove at i',
+      time: 'O(n − i); O(n) worst',
+      notes: 'Shift suffix left; O(1) space. No shrinking in this model.',
+    },
+  ]}
+>
+
+\*Average search assumes a successful target equally likely at each position.
+Missing targets require n comparisons. Unit-cost fixed-width values,
+arithmetic and comparisons are assumed. Backing storage uses O(capacity)
+space; after many removals, retained capacity may greatly exceed length.
+
+</ComplexityTable>
 
 “Average” needs an input distribution; “amortized” needs a sequence of operations.
 Neither term means that a slow operation cannot happen. Big-O is an upper bound;
@@ -212,7 +299,10 @@ are future lessons, not prerequisites here.
 Read `labs/dsa/arrays/README.md`, then fill in `starter.ts`. No code runs in the
 browser: these exercises run locally with the repository's test runner.
 
-<LabCard title="01 / Find the first matching value" command="pnpm lab:arrays">
+<LabCard
+  title="01 / Find the first matching value"
+  command="pnpm lab dsa/arrays"
+>
   Implement `linearSearch(values, target)`: return the first index whose value
   is `=== target`, or `-1`. Do not mutate input. Values and target are finite
   numbers. `[5, 5, 9]` with target 5 returns 0; `[]` returns -1. Explain best
@@ -227,7 +317,7 @@ loop finishes, every occupied position has been checked, so return -1.
 
 </details>
 
-<LabCard title="02 / Close a gap in place" command="pnpm lab:arrays">
+<LabCard title="02 / Close a gap in place" command="pnpm lab dsa/arrays">
   Implement `removeAt(values, index)`: mutate the same dense array and return
   the removed value. `[12, 24, 36, 48]`, index 2 returns 36 and leaves `[12, 24,
   48]`. Reject noninteger, negative, or out-of-range indices with `RangeError`
@@ -239,7 +329,7 @@ loop finishes, every occupied position has been checked, so return -1.
 
 The tested reference lives in `labs/dsa/arrays/solution.ts`; its removal
 helper is the implementation above. Run `pnpm test:labs` to verify the
-references, and `pnpm lab:arrays` to verify your own work. The latter
+references, and `pnpm lab dsa/arrays` to verify your own work. The latter
 intentionally fails until the starter is implemented. Search is O(n)
 worst-case time, O(1) auxiliary space; removal is O(n − i) time, O(1)
 auxiliary space in the indexed model.

@@ -1,0 +1,7 @@
+name: VisuAlgo
+kind: reference
+by: Steven Halim et al.
+url: https://visualgo.net/en
+prefixes:
+  - https://visualgo.net/
+description: Interactive visualizations of data structures and algorithms.

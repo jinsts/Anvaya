@@ -1,0 +1,8 @@
+title: Ransom Note
+url: https://leetcode.com/problems/ransom-note/
+difficulty: easy
+lessons: [dsa/hash-maps]
+topics: [hashing, counting, strings]
+hints:
+  - Each magazine letter can be used once, so compare counts rather than presence.
+  - Count the magazine's letters, then consume one count per ransom-note letter. Fail as soon as a needed count is zero.

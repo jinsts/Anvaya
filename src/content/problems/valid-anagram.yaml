@@ -1,0 +1,9 @@
+title: Valid Anagram
+url: https://leetcode.com/problems/valid-anagram/
+difficulty: easy
+lessons: [dsa/hash-maps]
+topics: [hashing, counting, strings]
+lists: [blind-75, neetcode-150]
+hints:
+  - Two strings are anagrams when every character appears the same number of times in both.
+  - Compare lengths first. Count characters in one string, decrement with the other, and fail if any count goes negative.

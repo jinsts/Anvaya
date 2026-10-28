@@ -1,23 +1,42 @@
 ---
 import type { MarkdownHeading } from 'astro';
+import Icon from '../ui/Icon.astro';
 interface Props {
   headings: MarkdownHeading[];
+  /** `mobile` renders a collapsed disclosure for narrow layouts. */
+  variant?: 'aside' | 'mobile';
 }
-const { headings } = Astro.props;
+const { headings, variant = 'aside' } = Astro.props;
+const sections = headings.filter((heading) => heading.depth === 2);
 ---
 
-<nav class="toc" aria-label="On this page">
-  <p class="eyebrow">In this lesson</p>
-  <ol>
-    {headings
-      .filter((h) => h.depth === 2)
-      .map((h) => (
+{variant === 'mobile' ? (
+  <nav class="toc toc-mobile" aria-label="On this page" data-pagefind-ignore>
+    <details>
+      <summary>
+        On this page <Icon name="chevron-down" size={16} />
+      </summary>
+      <ol>
+        {sections.map((heading) => (
+          <li>
+            <a href={`#${heading.slug}`}>{heading.text}</a>
+          </li>
+        ))}
+      </ol>
+    </details>
+  </nav>
+) : (
+  <nav class="toc toc-aside" aria-label="On this page">
+    <p class="eyebrow">On this page</p>
+    <ol>
+      {sections.map((heading) => (
         <li>
-          <a href={`#${h.slug}`}>{h.text}</a>
+          <a href={`#${heading.slug}`}>{heading.text}</a>
         </li>
       ))}
-  </ol>
-</nav>
+    </ol>
+  </nav>
+)}
 <script>
   const links = document.querySelectorAll<HTMLAnchorElement>('.toc a');
   const observer = new IntersectionObserver(
@@ -36,29 +55,74 @@ const { headings } = Astro.props;
   document
     .querySelectorAll('.prose h2')
     .forEach((heading) => observer.observe(heading));
+  document
+    .querySelectorAll<HTMLAnchorElement>('.toc-mobile a')
+    .forEach((link) =>
+      link.addEventListener('click', () =>
+        link.closest('details')?.removeAttribute('open'),
+      ),
+    );
 </script>
 <style>
-  .toc {
-    position: sticky;
-    top: var(--sticky-offset);
-    font-size: 0.76rem;
-  }
   ol {
+    margin: 0;
     padding: 0;
     list-style: none;
-    border-left: 1px solid var(--border);
   }
   a {
     display: block;
-    text-decoration: none;
-    color: var(--muted);
-    padding: 0.4rem 0 0.4rem 1rem;
+    padding: var(--space-1) 0 var(--space-1) var(--space-3);
     border-left: 2px solid transparent;
-    margin-left: -1px;
+    color: var(--muted);
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+    text-decoration: none;
   }
   a:hover,
   a[aria-current] {
-    color: var(--accent);
     border-left-color: var(--accent);
+    color: var(--accent);
+  }
+  .toc-aside {
+    position: sticky;
+    top: var(--sticky-offset);
+    max-height: calc(100dvh - var(--sticky-offset) - var(--space-8));
+    overflow-y: auto;
+  }
+  .toc-aside ol {
+    display: grid;
+    gap: var(--space-1);
+    border-left: 1px solid var(--border);
+  }
+  .toc-aside a {
+    margin-left: -1px;
+  }
+  .toc-mobile {
+    margin-bottom: var(--space-6);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-size: var(--text-base);
+  }
+  .toc-mobile summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-4);
+    font-weight: 600;
+    list-style: none;
+    cursor: pointer;
+  }
+  .toc-mobile summary::-webkit-details-marker {
+    display: none;
+  }
+  .toc-mobile details[open] summary :global(.icon) {
+    transform: rotate(180deg);
+  }
+  .toc-mobile ol {
+    padding: 0 var(--space-4) var(--space-3);
+  }
+  .toc-mobile a {
+    padding-block: var(--space-2);
   }
 </style>

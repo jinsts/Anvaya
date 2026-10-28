@@ -1,0 +1,9 @@
+title: Product of Array Except Self
+url: https://leetcode.com/problems/product-of-array-except-self/
+difficulty: medium
+lessons: [dsa/arrays]
+topics: [arrays, prefix-products]
+lists: [blind-75, neetcode-150]
+hints:
+  - The answer at index i is the product of everything to its left times the product of everything to its right.
+  - Fill the output with prefix products, then sweep from the right while multiplying by a running suffix product. No division is needed.

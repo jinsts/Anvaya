@@ -62,13 +62,13 @@ test('browse categories, open a subject, and begin its learning path', async ({
   );
   await page
     .getByRole('main')
-    .getByRole('link', { name: /View learning path/ })
+    .getByRole('link', { name: subjectTitle, exact: true })
     .click();
   await expect(page).toHaveURL(`/paths/${pathId}/`);
   await expect(
     page.getByRole('main').getByRole('heading', { name: 'Foundations' }),
   ).toBeVisible();
-  await page.getByRole('link', { name: 'Begin the path →' }).click();
+  await page.getByRole('link', { name: 'Begin the path' }).click();
   await expect(page).toHaveURL(arrays);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'Arrays: Think in indices',
@@ -91,7 +91,7 @@ test('category Back, browser history, and direct query restoration', async ({
   await page.reload();
   await expectCategory(page, 'Computer Science');
   await expect(page.locator('#category-back')).toHaveText(
-    '← Technology & Engineering',
+    'Technology & Engineering',
   );
   await page.locator('#category-back').click();
   await expectCategory(page, 'Technology & Engineering');
@@ -106,7 +106,7 @@ test('category Back, browser history, and direct query restoration', async ({
   await expect(page.locator('[data-category-id="technology"]')).toBeVisible();
 });
 
-test('global search reaches filtered lessons and restores query on reload', async ({
+test('global search reaches indexed lessons and restores query on reload', async ({
   page,
 }, info) => {
   await page.goto('/');
@@ -122,22 +122,22 @@ test('global search reaches filtered lessons and restores query on reload', asyn
   }
   await expect(page).toHaveURL('/concepts/?q=memory');
   const search = page.getByRole('main').getByRole('searchbox');
+  const arraysResult = page
+    .locator('#results')
+    .getByRole('link', { name: 'Arrays: Think in indices' });
   await expect(search).toHaveValue('memory');
-  await expect(page.locator('#search-status')).toHaveText('1 lesson');
-  await expect(
-    page
-      .getByRole('main')
-      .getByRole('link', { name: /Arrays: Think in indices/ }),
-  ).toBeVisible();
+  await expect(page.locator('#search-status')).toContainText('for “memory”');
+  await expect(arraysResult).toBeVisible();
   await page.reload();
   await expect(search).toHaveValue('memory');
-  await expect(page.locator('#search-status')).toHaveText('1 lesson');
-  await search.fill('no-such-concept');
+  await expect(arraysResult).toBeVisible();
+  await search.fill('zzqqxv');
   await expect(page.locator('#empty')).toBeVisible();
   await page.getByRole('button', { name: 'Clear', exact: true }).click();
   await expect(page).toHaveURL('/concepts/');
   await expect(search).toBeFocused();
-  await expect(page.locator('#search-status')).toHaveText('2 lessons');
+  await expect(page.locator('#search-status')).toContainText('Type to search');
+  await expect(page.locator('#results li')).toHaveCount(0);
   await expect(page.locator('#empty')).toBeHidden();
 });
 
@@ -221,16 +221,14 @@ test('header discovery and mobile navigation work with the keyboard', async ({
     await menu.focus();
     await page.keyboard.press('Enter');
     await expect(menu).toHaveAttribute('aria-expanded', 'true');
-    await expect(
-      navigation.getByRole('link', { name: 'Overview' }),
-    ).toBeFocused();
+    await expect(navigation.getByRole('link', { name: 'Home' })).toBeFocused();
     await expect(page.locator('.workspace')).toHaveAttribute('inert', '');
     await page.keyboard.press('Escape');
     await expect(navigation).toBeHidden();
     await expect(menu).toBeFocused();
     await expect(page.locator('.workspace')).not.toHaveAttribute('inert', '');
     await page.keyboard.press('Enter');
-    const explore = navigation.getByRole('link', { name: 'Explore subjects' });
+    const explore = navigation.getByRole('link', { name: 'Explore' });
     await explore.focus();
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL('/explore/');

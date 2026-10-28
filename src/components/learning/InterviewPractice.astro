@@ -1,0 +1,171 @@
+---
+import Icon from '../ui/Icon.astro';
+import { capitalize, inlineMarkdown } from '../../lib/format';
+import type { Problem, Source } from '../../lib/path-model';
+interface Props {
+  lessonId: string;
+  questions: { prompt: string; answer: string; followUps: string[] }[];
+  problems: Problem[];
+  sources: Source[];
+}
+const { lessonId, questions, problems, sources } = Astro.props;
+const listName = (id: string) =>
+  sources.find((source) => source.id === id)?.name ?? id;
+const query = encodeURIComponent(lessonId);
+---
+
+<section class="interview" aria-labelledby="interview-practice">
+  <h2 id="interview-practice">Interview practice</h2>
+  <p>
+    Answer each question out loud before you open it, as you would in an
+    interview. Compare your reasoning with the answer, not your wording.
+  </p>
+  {questions.length > 0 && (
+    <>
+      <div class="questions">
+        {questions.map((question, index) => (
+          <details class="question">
+            <summary>
+              <span class="question-number" aria-hidden="true">
+                Q{index + 1}
+              </span>
+              <span set:html={inlineMarkdown(question.prompt)} />
+            </summary>
+            <div class="answer">
+              <p set:html={inlineMarkdown(question.answer)} />
+              {question.followUps.length > 0 && (
+                <>
+                  <p class="follow-label">Likely follow-ups</p>
+                  <ul>
+                    {question.followUps.map((followUp) => (
+                      <li set:html={inlineMarkdown(followUp)} />
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          </details>
+        ))}
+      </div>
+      <p class="interview-link">
+        <a href={`/practice/questions/?lesson=${query}`}>
+          Drill these questions <Icon name="arrow-right" size={16} />
+        </a>
+      </p>
+    </>
+  )}
+  {problems.length > 0 && (
+    <>
+      <h3>Practice problems</h3>
+      <ul class="problems">
+        {problems.map((problem) => (
+          <li>
+            <a href={problem.url} target="_blank" rel="noopener noreferrer">
+              {problem.title}
+              <Icon name="external-link" size={14} />
+              <span class="sr-only"> (opens in a new tab)</span>
+            </a>
+            <span class="badge" data-difficulty={problem.difficulty}>
+              {capitalize(problem.difficulty)}
+            </span>
+            {problem.lists.map((id) => (
+              <span class="badge">{listName(id)}</span>
+            ))}
+          </li>
+        ))}
+      </ul>
+      <p class="interview-link">
+        <a href={`/practice/?lesson=${query}`}>
+          Track these problems in Practice <Icon name="arrow-right" size={16} />
+        </a>
+      </p>
+    </>
+  )}
+</section>
+<style>
+  .interview > p {
+    max-width: var(--article-measure);
+  }
+  .questions {
+    display: grid;
+    gap: var(--space-2);
+    max-width: var(--article-measure);
+  }
+  .question {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+  summary {
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-base);
+    font-weight: 600;
+    line-height: var(--leading-snug);
+    cursor: pointer;
+  }
+  .question[open] summary {
+    border-bottom: 1px solid var(--border);
+  }
+  .question-number {
+    flex: none;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+  .answer {
+    padding: var(--space-4) var(--space-5);
+    font-size: var(--text-base);
+    line-height: var(--leading);
+  }
+  .answer > :last-child {
+    margin-bottom: 0;
+  }
+  .follow-label {
+    margin-bottom: var(--space-1);
+    color: var(--muted);
+    font-size: var(--text-xs);
+    font-weight: 650;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .answer ul {
+    margin: 0;
+    padding-left: var(--space-5);
+  }
+  .problems {
+    display: grid;
+    gap: var(--space-2);
+    max-width: var(--article-measure);
+    padding: 0;
+    list-style: none;
+  }
+  .problems li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-size: var(--text-base);
+  }
+  .problems a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    margin-right: auto;
+    font-weight: 600;
+  }
+  .interview-link a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-base);
+    font-weight: 600;
+    text-decoration: none;
+  }
+</style>

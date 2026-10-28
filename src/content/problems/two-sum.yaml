@@ -1,0 +1,9 @@
+title: Two Sum
+url: https://leetcode.com/problems/two-sum/
+difficulty: easy
+lessons: [dsa/hash-maps]
+topics: [hashing, arrays]
+lists: [blind-75, neetcode-150]
+hints:
+  - For each value x, the partner you need is target − x.
+  - Scan once and store each value's index in a map. Check for the complement before storing x so an element never pairs with itself.

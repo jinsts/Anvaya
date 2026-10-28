@@ -46,18 +46,21 @@ test('home → path → Arrays → Hash Maps with generated navigation', async (
     path: info.outputPath('home-light.png'),
     fullPage: true,
   });
-  await page.getByRole('link', { name: 'Open DSA foundations →' }).click();
+  await page
+    .getByRole('main')
+    .getByRole('link', { name: 'Data Structures & Algorithms', exact: true })
+    .click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'Data Structures & Algorithms',
   );
-  await page.getByRole('link', { name: 'Begin the path →' }).click();
+  await page.getByRole('link', { name: 'Begin the path' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'Arrays: Think in indices',
   );
-  await page
-    .getByRole('navigation', { name: 'On this page' })
-    .getByRole('link', { name: 'Two-minute recap' })
-    .click();
+  const outline = page.getByRole('navigation', { name: 'On this page' });
+  // Narrow layouts collapse the outline into a disclosure.
+  if (info.project.name === 'mobile') await outline.locator('summary').click();
+  await outline.getByRole('link', { name: 'Two-minute recap' }).click();
   await expect(page).toHaveURL(/#two-minute-recap$/);
   await expect(
     page.getByRole('heading', { name: 'Two-minute recap' }),
@@ -290,17 +293,22 @@ test('blocked storage still allows reading and switching theme', async ({
   ).toBeVisible();
 });
 
-test('concept filtering, quiz feedback, and mobile navigation', async ({
+test('full-text search, quiz feedback, and mobile navigation', async ({
   page,
 }, info) => {
   await page.goto('/concepts/');
   const search = page.getByRole('main').getByRole('searchbox');
+  const results = page.locator('#results');
   await search.fill('memory');
-  await expect(page.locator('#search-status')).toHaveText('1 lesson');
-  await search.fill('nonexistent');
+  await expect(
+    results.getByRole('link', { name: 'Arrays: Think in indices' }),
+  ).toBeVisible();
+  await search.fill('zzqqxv');
   await expect(page.locator('#empty')).toBeVisible();
-  await search.fill('keys');
-  await expect(page.locator('#search-status')).toHaveText('1 lesson');
+  await search.fill('collision');
+  await expect(
+    results.getByRole('link', { name: 'Hash Maps: Find by meaning' }),
+  ).toBeVisible();
   await page.goto(arrays);
   const quiz = page.locator('[data-quiz]');
   await quiz
