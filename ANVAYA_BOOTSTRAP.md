@@ -10,7 +10,7 @@
 | Project | **Anvaya** |
 | Repository | `anvaya` (new/empty repository) |
 | Document type | Product brief, architecture decision baseline, learning-experience specification, and executable bootstrap plan |
-| Status | **Foundation implemented; owner lesson review pending. Current progress: [IMPLEMENTATION.md](IMPLEMENTATION.md)** |
+| Status | **Foundation and platform v2 implemented (ADRs 0003–0006); owner lesson review pending. Current progress: [IMPLEMENTATION.md](IMPLEMENTATION.md)** |
 | Initial audience | One personal learner; architecture should remain maintainable and potentially open-sourceable |
 | Date | 2026-10-27 |
 | Initial focus | Data Structures & Algorithms (Arrays first); expandable to Haskell, System Design, Cloud, AI Engineering and more |

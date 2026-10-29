@@ -3,13 +3,15 @@
 Connect concepts. Build understanding.
 
 A personal engineering learning platform: learn → visualize → experiment →
-practise → recall → revisit. The current library contains one substantial Arrays
-lesson and a smaller Hash Maps sample. Both are drafts awaiting owner review.
+practise → recall → revisit. The library has a substantial Arrays lesson and a
+smaller Hash Maps lesson, both drafts awaiting owner review, plus interview
+practice: problems from reputable lists, a question drill and timed mock
+interviews.
 
-The approved architecture and acceptance criteria are in
-[ANVAYA_BOOTSTRAP.md](ANVAYA_BOOTSTRAP.md); see
-[IMPLEMENTATION.md](IMPLEMENTATION.md) for milestone progress and verification.
-Measured results and browser-review limits are in [VERIFICATION.md](docs/VERIFICATION.md).
+The approved architecture is in [ANVAYA_BOOTSTRAP.md](ANVAYA_BOOTSTRAP.md), with
+later decisions in [docs/adr/](docs/adr/). Progress and measured results are in
+[IMPLEMENTATION.md](IMPLEMENTATION.md) and [VERIFICATION.md](docs/VERIFICATION.md).
+Agents start at [AGENTS.md](AGENTS.md).
 
 ## Run locally
 
@@ -22,8 +24,9 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open the local URL printed by Astro (normally `http://localhost:4321`). For the
-actual static production output:
+Open the local URL printed by Astro (normally `http://localhost:4321`).
+Full-text search needs the index built by `pnpm build`, so use the production
+output to search:
 
 ```sh
 pnpm build
@@ -31,67 +34,89 @@ pnpm preview
 ```
 
 Serve over HTTP; double-clicking files with `file://` is unsupported. No API keys,
-accounts, backend, remote fonts or runtime services are required. Astro development
-telemetry can be disabled with `pnpm astro telemetry disable`. This repository
-does not configure any deployment.
+accounts, backend, remote fonts or runtime services are required. Fonts and the
+search index are local build assets. Astro development telemetry can be
+disabled with `pnpm astro telemetry disable`. This repository does not configure
+any deployment.
 
 ## Quality gate
 
 ```sh
-pnpm check
-pnpm format:check
-pnpm lint
-pnpm test
-pnpm build
-pnpm exec playwright install chromium
-pnpm test:e2e
+pnpm exec playwright install chromium   # once
+pnpm verify
 ```
+
+`pnpm verify` runs, in order:
+
+- `pnpm check`: Astro and TypeScript diagnostics.
+- `pnpm format:check`: Prettier.
+- `pnpm lint`: ESLint, design-token enforcement (`scripts/lint-styles.mjs`) and
+  placeholder detection in content and labs (`scripts/lint-content.mjs`).
+- `pnpm test`: unit, component and reference-lab tests.
+- `pnpm build`: static build, Pagefind index, then link, anchor, heading,
+  image-alternative and recap validation.
+- `pnpm test:e2e`: desktop and mobile Chromium flows with axe scans in both
+  themes.
 
 On a fresh Linux CI machine, use `pnpm exec playwright install --with-deps chromium`
 to install browser system libraries too. The E2E suite starts its own production
-preview on `127.0.0.1:4321`; build first and leave that port free. It runs desktop
-Chromium and mobile Chromium emulation, scans light/dark pages with axe, and saves
-screenshots and traces under ignored `test-results/` and `playwright-report/`.
-Real iOS/WebKit and manual screen-reader certification are not implied.
+preview on `127.0.0.1:4321` (or reuses one already there). Build first.
+Screenshots and traces go to the ignored `test-results/` and
+`playwright-report/`. Real iOS/WebKit and manual screen-reader certification are
+not implied.
 
-`pnpm build` validates generated local links, assets, anchors, unique IDs, headings,
-image alternatives and lesson recaps. Astro validates frontmatter and MDX;
-the catalog rejects missing path/prerequisite references and cycles.
+## Practise
 
-## Practise locally
+- **Lessons:** read [the Arrays lab](labs/dsa/arrays/README.md), implement its
+  `starter.ts`, then run `pnpm lab dsa/arrays`. It fails until your
+  implementation passes; `pnpm test:labs` checks the reference solutions.
+- **Interview practice:** `/practice/` lists problems with filters, status and a
+  timed mock interview. `/practice/questions/` drills each subject's interview
+  questions, and each lesson ends with its own questions and problems.
 
-Read [the Arrays lab](labs/dsa/arrays/README.md), implement its `starter.ts`, then run
-`pnpm lab:arrays`. This command intentionally fails on unfinished TODOs.
-`pnpm test:labs` verifies the supplied reference solutions and Hash Maps example;
-the normal quality suite excludes unfinished learner attempts.
+## Add content
+
+Follow the playbooks in [docs/playbooks/](docs/playbooks/):
+
+```sh
+pnpm new:lesson dsa/two-pointers --title "Two pointers: Walk from both ends" --path dsa-foundations --lab
+pnpm new:problem two-sum --title "Two Sum" --url https://leetcode.com/problems/two-sum/ --difficulty easy --lesson dsa/hash-maps
+```
+
+Scaffolds contain `TODO` markers that `pnpm lint` rejects until replaced.
 
 ## Where things live
 
-- `src/content/lessons/`: canonical MDX and metadata.
-- `src/data/taxonomy.ts`: categories and subjects, including fields beyond computer science.
-- `src/data/paths.ts`: ordered paths and optional sections; canonical lessons can be reused.
-- `/explore/` and `/subjects/<id>/`: subject discovery; `/paths/` provides ordered study.
-- `src/scripts/path-context.ts`: optional validated URL context for shared lessons.
-- `src/layouts/`, `src/components/`: Astro shell/teaching components and one React island.
-- `src/lib/`: pure array logic and catalog validation.
-- `labs/`: exercises, contracts, solutions and reproducible worked examples.
-- `scripts/validate-build.mjs`: production output validation.
-- `tests/`: unit, component and browser behavior tests.
-- `docs/`: [authoring](docs/AUTHORING_GUIDE.md), [design](docs/DESIGN_SYSTEM.md),
-  [learning standards](docs/LEARNING_STANDARDS.md), and [ADRs](docs/adr/).
+- `src/content/lessons/`: canonical MDX lessons, one folder per subject.
+- `src/content/{categories,subjects,paths}/`: discovery and study order, one YAML
+  file per entity.
+- `src/content/sources/`: trusted sources; citations must match a registered prefix.
+- `src/content/problems/`: interview problem references with original hints.
+- `src/lib/`: schemas, catalog validation, array and practice logic.
+- `src/components/`: shell, catalog, learning and interactive components.
+- `src/scripts/`: progress, practice, drill, search and path-context enhancements.
+- `labs/`: exercises, contracts, solutions and worked examples.
+- `templates/`, `scripts/`: generators, linters and build validation.
+- `tests/`: unit, component and browser tests.
+- `docs/`: [authoring reference](docs/AUTHORING_GUIDE.md),
+  [design system](docs/DESIGN_SYSTEM.md),
+  [learning standards](docs/LEARNING_STANDARDS.md), [playbooks](docs/playbooks/)
+  and [ADRs](docs/adr/).
 
 ## Boundaries and troubleshooting
 
-Theme preference uses only `anvaya:theme:v1` in this browser's localStorage.
-Clear it through browser site-data controls, or choose System. Blocked/corrupt
-storage falls back gracefully. Learner progress, syncing, PWA caching, additional
-curricula and remote hosting are deferred. The home offers a stable starting point
-rather than claiming progress it does not store.
+The browser stores two keys locally: theme (`anvaya:theme:v1`) and progress
+(`anvaya:progress:v1`, covering completed lessons, last lesson, problem status
+and drill results). Home has Export, Import and Clear controls; browser
+site-data controls also clear both keys. Corrupt data is ignored and blocked
+storage falls back to memory for the session. Nothing syncs across devices.
+Pages remain readable without JavaScript.
 
 If install fails, verify Node/pnpm versions and registry connectivity; do not
 replace the lockfile with another package manager's file. A TypeScript-major bump
 must be compatible with Astro's checker and ESLint (currently TypeScript 6).
 If preview exits, check port 4321 and permission to bind a loopback server.
+If search says the index is missing, run `pnpm build` and use `pnpm preview`.
 If Chromium cannot launch, install its OS dependencies and check sandbox policy.
 Never report browser verification as passed if the browser did not run.
 

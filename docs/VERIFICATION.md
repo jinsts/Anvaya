@@ -123,3 +123,75 @@ and `home-{desktop,mobile}-dark.png`. All generated evidence remains ignored.
 The prior verification limits still apply: mobile Chromium is emulation, remote
 GitHub Actions has not run, and owner pedagogical review is pending. No deployment,
 push, content promotion or learner-progress implementation occurred.
+
+## Platform v2 — 2026-10-29
+
+Scope: [IMPLEMENTATION.md](../IMPLEMENTATION.md) (platform v2) and ADRs 0004–0006.
+Added dependencies: `@fontsource-variable/inter` 5.3.0,
+`@fontsource-variable/jetbrains-mono` 5.3.0 and `@lucide/astro` 1.63.0 (build
+time, declares Astro 7 support), plus `pagefind` 1.5.2 (dev). Versions were
+checked against registry metadata. Fonts are OFL-1.1, Pagefind is MIT.
+
+| Check                   | Result                                                                                                                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm verify`           | Exit 0: every gate below in one run                                                                                                                                                   |
+| `pnpm check`            | 0 errors, warnings or hints (`playwright-report/` and `test-results/` are now excluded from type checking)                                                                            |
+| `pnpm format:check`     | Passed                                                                                                                                                                                |
+| `pnpm lint`             | ESLint, design-token and placeholder checks passed; both new linters were shown to fail on probe violations                                                                           |
+| `pnpm test`             | 63 tests in 8 files: catalog validation, progress store, practice logic, formatting, explorer, path context, labs                                                                     |
+| `pnpm test:labs`        | 19 reference tests passed; `pnpm lab dsa/arrays` runs only that lab and fails on the learner TODOs, as designed                                                                       |
+| `pnpm build`            | 11 static pages; Pagefind indexed 5 pages; links, anchors, headings, image alternatives and recaps validated                                                                          |
+| `pnpm test:e2e`         | 36 passed: 18 scenarios on desktop and mobile Chromium, including 36 axe scans across 9 page types and 2 themes                                                                       |
+| Theme-switch stress run | 32 of 32 passed (both theme tests × 2 projects × 8 repeats)                                                                                                                           |
+| Generators              | Scaffolded lesson, lab and problem; lint flagged every TODO; build named the missing path entry; guards refused duplicates, unknown subjects and missing lessons; probe files removed |
+
+Browser review covered Home, Explore, subject, paths, path, both lessons,
+search, practice and question drill at 1440 × 900 and 390 × 844 in both themes.
+It found and fixed:
+
+- Missing spaces in count labels such as "2lessons".
+- Uneven practice filters on phones.
+- Color transitions during theme switches, which made scans flaky and caused
+  visible flicker. Transitions are now suspended deterministically.
+- A WCAG 2.2 target-size failure on adjacent source links.
+- Absolute URLs written by the progress script.
+
+The browser suite reused the preview server already listening on
+`127.0.0.1:4321` (Playwright reuses servers outside CI). That server serves the
+rebuilt `dist/`, confirmed by the new Pagefind assets returning HTTP 200.
+
+### Scale benchmark
+
+A scratch copy (repository untouched) was filled with 3,000 synthetic lessons
+across 50 subjects and paths, each lesson with eight sections and an interview
+question.
+
+| Measure (3,000 lessons) | Before (review)       | After                                                                            |
+| ----------------------- | --------------------- | -------------------------------------------------------------------------------- |
+| Astro build             | 48.4 s, 4.0 GB peak   | 36.6 s, 3.9 GB peak (memoized catalog)                                           |
+| Search page             | 3.3 MB, every card    | 19.5 KB; Pagefind indexed 3,105 pages in 1.65 s (14 MB index, fetched in chunks) |
+| Build validation        | Exhausted a 4 GB heap | 16.7 s, 0.8 GB (keeps only IDs and links)                                        |
+| Question drill          | 2.3 MB on one page    | One page per subject                                                             |
+
+At that size the paths index is 725 KB raw (45 KB gzip), because each path card
+lists its lessons for progress. That is acceptable now; revisit it if a library
+has dozens of long paths.
+
+### Content verification
+
+- Problem slugs, titles, difficulty and Blind 75 / NeetCode 150 membership were
+  checked against NeetCode's published `.problemSiteData.json`. Blind 75 was
+  cross-checked against the Tech Interview Handbook. Grind 75 membership is not
+  claimed: the default 75 come from a scheduler over 169 problems.
+- Every registered source URL returned HTTP 200 except LeetCode, which returns
+  403 to automated clients.
+- Interview answers and hints are original agent drafts. They agree with the
+  lessons and sources but await owner review, like both lessons.
+
+### Limits
+
+Mobile results come from Chromium emulation. The GitHub Actions workflow has
+not run remotely. No screenshot baselines were added; they wait for owner
+approval of the design. Labs remain TypeScript-only, and choosing another
+interview language is an owner decision. No push, deployment or remote change
+was made.

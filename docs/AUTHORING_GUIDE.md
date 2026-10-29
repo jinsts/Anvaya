@@ -1,92 +1,114 @@
-# Authoring one lesson
+# Authoring reference
 
-Read the baseline's learning anatomy and source policy first. Add only a lesson
-you actually intend to study; do not pre-generate paths of shallow placeholders.
+Field, component and convention reference for Anvaya content. For
+step-by-step tasks use the [playbooks](playbooks/); for UI rules see
+[DESIGN_SYSTEM.md](DESIGN_SYSTEM.md).
 
-1. Add `src/content/lessons/<subject>/<slug>.mdx`. Its collection ID is the nested
-   path without `.mdx`, such as `dsa/arrays`.
-2. Supply metadata using the schema in `src/lib/lesson-schema.ts`.
-3. Register the subject and its category in `src/data/taxonomy.ts` if needed.
-   Categories can have a parent; the same model supports any field of study.
-   Add categories when there is something to study, rather than placeholders.
-4. Optionally add the lesson ID to an ordered path in `src/data/paths.ts`. A path
-   uses either `lessons` or `sections: [{ id, title, lessons }]`. Paths can reuse
-   canonical lessons, even across subjects. Set the lesson's optional `path` to
-   its default path; omit it for standalone content. No shell edits are needed.
-5. Add tested examples/exercises under `labs/<subject>/<slug>/`. Prefer importing
-   actual source with `?raw` for code displays so examples cannot silently drift.
-6. Run the README quality gate; inspect the actual page at desktop/mobile widths
-   and both themes. Draft status stays until genuine owner review.
+## Content model
 
-## Metadata
-
-```yaml
----
-title: 'Descriptive concept title'
-summary: 'A concrete sentence describing what the learner will understand.'
-subject: dsa
-path: dsa-foundations
-difficulty: foundation
-estimatedMinutes: 20
-learningObjectives:
-  - Explain one mechanism in your own words
-prerequisites: [dsa/arrays]
-tags: [one-relevant-tag]
-status: draft
-sources:
-  - label: 'A real primary reference you have read'
-    url: 'https://tc39.es/ecma262/'
----
+```text
+Category ─< Category (parent)          discovery: Explore
+Category ─< Subject ─< Path ─< Section ─< Lesson     study order: paths
+Lesson  >─< Problem ─> Source (problem bank, problem lists)
+Lesson  ─> Source (citations by URL prefix)
 ```
 
-This shows syntax, not content to copy unchanged. Use genuine consulted sources.
-`difficulty` is foundation/intermediate/advanced; `status` is
-draft/reviewed/published. Reviewed/published require `reviewedAt` (ISO date).
-Subjects must exist in the taxonomy. A default `path`, when supplied, must
-contain this lesson. Paths own membership and ordering; do not copy a lesson to
-put it into a second sequence. `pathLessonIds()` and `pathSections()` normalize
-flat and sectioned paths. A non-default membership uses `?path=<id>` for its
-sidebar and adjacent lessons; direct links retain the canonical URL.
+| Entity   | File                                       | Schema                       |
+| -------- | ------------------------------------------ | ---------------------------- |
+| Lesson   | `src/content/lessons/<subject>/<slug>.mdx` | `src/lib/lesson-schema.ts`   |
+| Category | `src/content/categories/<id>.yaml`         | `src/lib/content-schemas.ts` |
+| Subject  | `src/content/subjects/<id>.yaml`           | `src/lib/content-schemas.ts` |
+| Path     | `src/content/paths/<id>.yaml`              | `src/lib/content-schemas.ts` |
+| Source   | `src/content/sources/<id>.yaml`            | `src/lib/content-schemas.ts` |
+| Problem  | `src/content/problems/<slug>.yaml`         | `src/lib/content-schemas.ts` |
+| Lab      | `labs/<subject>/<slug>/`                   | Vitest contracts             |
 
-Prerequisites use canonical IDs, must exist, and cannot form cycles. Stable IDs
-are lowercase kebab-case segments; preserve links when renaming. Sources cannot
-be placeholders. At least one objective and source are required.
+IDs are lowercase kebab-case and come from file names. A lesson's ID is its
+path under `lessons/` (`dsa/arrays`), and its folder must match its `subject`.
+URLs are stable: `/learn/<id>/`, `/paths/<id>/`, `/subjects/<id>/`. When renaming
+something that is linked externally, add a redirect in `astro.config.mjs`.
 
-## Teaching outline
+Zod schemas validate each file; `validateCatalog` in `src/lib/path-model.ts`
+validates references across files on every build.
 
-Start with a reason to care and the prerequisites. Build an intuition, then show
-the mechanism and its limits. Add a formal model, verified code with expected
-results, costs with assumptions, use cases, misconceptions, independent practice,
-reasoning checks and `## Two-minute recap`. Sources and previous/next navigation
-are rendered from metadata. See Arrays for a complete, custom-composed example;
-short reference lessons need not match its length.
+## Lesson frontmatter
 
-## Component catalog
+| Field                | Required | Notes                                                                |
+| -------------------- | -------- | -------------------------------------------------------------------- |
+| `title`              | yes      | "Concept: hook", for example `Arrays: Think in indices`              |
+| `shortTitle`         | no       | Navigation label, for example `Arrays`; defaults to `title`          |
+| `summary`            | yes      | One concrete sentence about what the learner will understand         |
+| `subject`            | yes      | Subject ID; must match the folder                                    |
+| `path`               | no       | Default path ID; that path must list the lesson                      |
+| `difficulty`         | yes      | `foundation`, `intermediate` or `advanced`                           |
+| `estimatedMinutes`   | yes      | Reading plus practice time                                           |
+| `learningObjectives` | yes      | 2–4 outcomes the learner can demonstrate                             |
+| `prerequisites`      | no       | Lesson IDs; cycles are rejected                                      |
+| `tags`               | no       | Kebab-case; reuse existing tags                                      |
+| `status`             | yes      | `draft` until the owner promotes it                                  |
+| `drafter`            | yes      | `agent` or `owner`; shown as provenance on the page                  |
+| `reviewedAt`         | owner    | Required once `status` is `reviewed` or `published`                  |
+| `interviewQuestions` | no       | `{ prompt, answer, followUps? }[]`; prompts unique within the lesson |
+| `sources`            | yes      | `{ label, url }[]`; each URL starts with a registered source prefix  |
+
+Interview question strings support only `` `code` `` and `**bold**`. They are
+escaped and rendered in the lesson's Interview practice section and in the
+question drill.
+
+## Problems
+
+| Field        | Notes                                                           |
+| ------------ | --------------------------------------------------------------- |
+| `title`      | The problem bank's title                                        |
+| `url`        | Problem page; must match a registered `problem-bank` prefix     |
+| `difficulty` | `easy`, `medium` or `hard`, as labelled by the source           |
+| `lessons`    | Lesson IDs that teach the needed ideas (at least one)           |
+| `topics`     | Kebab-case tags used by the practice search                     |
+| `lists`      | Registered `problem-list` source IDs; only verified memberships |
+| `hints`      | 1–4 original hints that escalate; no code or statements         |
+
+## Sources
+
+`name`, `kind`, optional `by`, `url`, optional `prefixes` (citations must start
+with one of them; defaults to `url`) and `description`. See
+[add-source.md](playbooks/add-source.md) for what qualifies.
+
+## Components in lessons
+
+These are available in every lesson without an import:
 
 | Component         | Contract                                                                                         |
 | ----------------- | ------------------------------------------------------------------------------------------------ |
-| `LessonLayout`    | Renders metadata, objectives, prerequisites, outline, sources and adjacent lessons automatically |
-| `SectionTOC`      | Generated heading links with active-section indication                                           |
-| `Callout`         | `title`, optional `variant` info/warning/success, prose children                                 |
-| `DiagramFrame`    | `caption` and SVG/HTML children; give each graphic a meaningful accessible description           |
-| `IndexedMemory`   | Specific index/address mechanism with buttons and keyboard-operable SVG hotspots                 |
-| `CodeExample`     | `title`, actual `code`, optional `output`, `language` ts/js/bash; copy and result display        |
-| `ComplexityTable` | Current array-specific cost table; generalize only when another lesson needs the pattern         |
-| `LabCard`         | `title`, local `command`, exercise children                                                      |
-| `ConceptCheck`    | Unique `id`, question, options `{label, explanation, correct?}`; require reasoning feedback      |
-| `ArrayExplorer`   | Pure-model React widget, MDX uses `client:visible`                                               |
+| `Callout`         | `title`, optional `variant` `info` / `warning` / `success`; prose children                       |
+| `CodeExample`     | `title`, `code` (import with `?raw`), optional `language` `ts`/`js`/`bash`, `output`, `verified` |
+| `ComplexityTable` | `caption`, `rows: { operation, time, notes }[]`, optional `label`; children become a footnote    |
+| `ConceptCheck`    | unique `id`, `question`, `options: { label, explanation, correct? }[]` with exactly one correct  |
+| `DiagramFrame`    | `caption`; wraps an SVG or HTML figure                                                           |
+| `LabCard`         | `title`, `command` (for example `pnpm lab dsa/arrays`); exercise text as children                |
 
-Imports in a nested lesson are relative to the file. Astro components cannot be
-React-hydrated. Keep large SVG outside MDX. Use blank lines around markdown inside
-JSX containers, and put block `<details>`/`<summary>` tags on separate lines.
-Use a unique anchor/name for each interactive widget. Check snippets and sources
-actually render correctly; a type check does not compile all MDX narrative.
+Import lesson-specific components explicitly, such as `IndexedMemory` and the
+`ArrayExplorer` island (`client:visible`). Import code with
+`import source from '../../../../labs/<subject>/<slug>/file.ts?raw'`.
 
-## Review and AI assistance
+The layout renders the hero, prerequisites, objectives, the outline, the
+Interview practice section, sources, completion controls and previous/next
+links from metadata.
 
-Use [LEARNING_STANDARDS.md](LEARNING_STANDARDS.md) as the concise review gate,
-with the blueprint as the authoritative requirements. Tests are necessary evidence
-for code behavior, not proof of prose accuracy. Leave uncertain claims explicitly
-unverified or remove them. Do not fabricate personal study experiences, reviewed
-dates, source citations or command results. Owner review promotes content status;
-editing a lesson does not record learner mastery.
+## MDX notes
+
+- Leave blank lines around Markdown inside a component, and put block
+  `<details>` / `<summary>` tags on their own lines.
+- Use `{/* comments */}`, not HTML comments.
+- Write `##` headings for sections; they form the outline. `## Two-minute
+recap` is required.
+- `pnpm check` does not compile MDX prose; `pnpm build` does.
+
+## Commands
+
+| Command                                                               | Purpose                                                    |
+| --------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `pnpm new:lesson <subject>/<slug> [--path id] [--lab]`                | Scaffold a lesson (and lab) from `templates/`              |
+| `pnpm new:problem <slug> --title … --url … --difficulty … --lesson …` | Scaffold a problem reference                               |
+| `pnpm lab <subject>/<slug>`                                           | Run the learner's attempt for one lab (fails until solved) |
+| `pnpm lint`                                                           | ESLint, design-token and placeholder checks                |
+| `pnpm verify`                                                         | Every quality gate, including the build and browser tests  |

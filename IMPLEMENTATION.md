@@ -49,3 +49,37 @@ Owner-approved follow-on: [ADR 0003](docs/adr/0003-subject-catalog-and-reference
 
 No additional curriculum, learner progress storage, services or remote changes
 are part of this increment. Optional Milestone 4 remains deferred.
+
+## Platform v2: scale, design, interview practice and authoring — 2026-10-28
+
+Follows the owner-requested repository review. Decisions:
+[ADR 0004](docs/adr/0004-content-collections-and-agent-authoring.md),
+[ADR 0005](docs/adr/0005-interview-practice-and-local-progress.md) and
+[ADR 0006](docs/adr/0006-design-system-and-search.md).
+
+- [x] Commit the ADR 0003 increment as a baseline on branch `platform-v2`.
+- [x] Fix the review's defects: lesson prose ran to ~115 characters per line;
+      the sources note always said "draft"; `pnpm lab:arrays` would run every
+      lab; the catalog was re-validated for every page; Home hard-coded the
+      Arrays lesson and DSA path; navigation labels split titles on `:`; the
+      complexity table was Arrays-only.
+- [x] Move categories, subjects and paths to YAML collections. Add a trusted
+      source registry, problem references, planned topics and cross-file
+      validation.
+- [x] Design system v2: self-hosted fonts, token scales with lint enforcement,
+      Lucide icons, subject tones, dashboard, catalog, reading and practice
+      page types.
+- [x] Interview practice: lesson interview questions, 12 verified problem
+      references, tracker with filters and statuses, mock interview timer,
+      per-subject question drill, and local progress with export, import and clear.
+- [x] Pagefind full-text search with section links.
+- [x] Agent authoring: router `AGENTS.md`, six playbooks, authoring reference,
+      templates, generators and `pnpm verify`.
+- [x] Fix what a 3,000-lesson benchmark exposed: build validation now uses
+      constant memory per page, and the drill has one page per subject.
+- [x] Measured verification in [VERIFICATION.md](docs/VERIFICATION.md).
+
+Both lessons remain drafts (`drafter: agent`). No new lesson was written; the
+DSA path lists four planned topics taken from the bootstrap hierarchy (§3.1)
+and the earlier recommendation of two pointers. No push, deployment, runtime
+service, license or remote change.
