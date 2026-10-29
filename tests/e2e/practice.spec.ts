@@ -139,6 +139,15 @@ test('practice, drill, search and home pass accessibility scans in both themes',
         .getByRole('combobox', { name: 'Color theme' })
         .selectOption(theme);
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      // Theme changes must not animate colors (and scans need final colors).
+      expect(
+        await page.evaluate(
+          () =>
+            document
+              .getAnimations()
+              .filter((animation) => animation.playState === 'running').length,
+        ),
+      ).toBe(0);
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,

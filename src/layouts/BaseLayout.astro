@@ -344,13 +344,12 @@ const navItems: {
       const applyTheme = () => {
         const choice = select?.value ?? 'system';
         const root = document.documentElement;
-        // Switch colors instantly instead of animating every control.
+        // Switch colors instantly: suspend transitions, flush styles, restore.
         root.classList.add('theme-switching');
         root.dataset.theme =
           choice === 'system' ? (system.matches ? 'dark' : 'light') : choice;
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => root.classList.remove('theme-switching')),
-        );
+        void document.body.offsetHeight;
+        root.classList.remove('theme-switching');
       };
       if (select) {
         try {
