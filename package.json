@@ -21,9 +21,9 @@
     "lab:arrays": "vitest run --config vitest.labs.config.ts"
   },
   "dependencies": {
-    "@astrojs/mdx": "^8.1.1",
-    "@astrojs/react": "^7.1.1",
-    "astro": "^7.4.2",
+    "@astrojs/mdx": "^8.1.2",
+    "@astrojs/react": "^7.1.2",
+    "astro": "^7.4.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
