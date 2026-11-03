@@ -1,0 +1,9 @@
+title: __TITLE__
+url: __URL__
+difficulty: __DIFFICULTY__
+lessons: [__LESSON__]
+topics: []
+lists: []
+hints:
+  - 'TODO: A nudge toward the key observation, without the solution.'
+  - 'TODO: The approach and its complexity, still without code.'

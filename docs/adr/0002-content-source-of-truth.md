@@ -12,3 +12,8 @@ label. Only genuine owner review may promote their status. No fabricated review
 dates. Git content status and any later device-specific learner progress are separate.
 
 Reference: [Astro content collections](https://docs.astro.build/en/guides/content-collections/).
+
+Update 2026-10-28: [ADR 0003](0003-subject-catalog-and-reference-design.md)
+extends membership to shared and standalone lessons. Absence from a path is no
+longer an orphan error; unknown subjects, path references and prerequisite cycles
+are still rejected. Paths remain the source of sequence ordering.

@@ -1,0 +1,538 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHeader from '../../components/ui/PageHeader.astro';
+import Icon from '../../components/ui/Icon.astro';
+import { capitalize, plural } from '../../lib/format';
+import { getCatalog, lessonLabel } from '../../lib/catalog';
+import { lessonUrl } from '../../lib/path-model';
+const { problems, lessons, lessonById, availableSubjects, sources } =
+  await getCatalog();
+const lists = sources.filter((source) => source.kind === 'problem-list');
+const banks = sources.filter((source) =>
+  ['problem-bank', 'problem-list'].includes(source.kind),
+);
+const listName = (id: string) =>
+  lists.find((list) => list.id === id)?.name ?? id;
+const linked = new Set(problems.flatMap((problem) => problem.lessons));
+const topicGroups = availableSubjects
+  .map((subject) => ({
+    subject,
+    lessons: lessons.filter(
+      (lesson) => lesson.data.subject === subject.id && linked.has(lesson.id),
+    ),
+  }))
+  .filter((group) => group.lessons.length > 0);
+const statuses = [
+  ['todo', 'To do'],
+  ['attempted', 'Attempted'],
+  ['solved', 'Solved'],
+  ['review', 'Needs review'],
+];
+const steps = [
+  'Clarify the problem: inputs, outputs, constraints and edge cases.',
+  'Work two small examples by hand, including an edge case.',
+  'State a brute-force approach and its complexity.',
+  'Improve it: name the pattern and the invariant you rely on.',
+  'Write the code while narrating your decisions.',
+  'Test with your examples and edge cases; fix what breaks.',
+  'State the final time and space complexity and the trade-offs.',
+];
+---
+
+<BaseLayout title="Interview practice">
+  <div
+    data-pagefind-body
+    data-pagefind-filter="type:Practice"
+    data-pagefind-meta="subject:Interview practice"
+  >
+    <PageHeader
+      title="Interview practice"
+      description="Work problems from reputable interview lists, track every attempt, and rehearse against the clock."
+      icon="target"
+    >
+      <p class="header-links" data-pagefind-ignore>
+        <a href="/practice/questions/">
+          <Icon name="message-circle-question-mark" size={16} /> Drill interview
+          questions
+        </a>
+      </p>
+    </PageHeader>
+
+    <section
+      class="card mock js-only"
+      aria-labelledby="mock-title"
+      data-mock
+      data-pagefind-ignore
+    >
+      <div class="mock-intro" data-mock-intro>
+        <span class="icon-tile">
+          <Icon name="timer" size={20} />
+        </span>
+        <div class="mock-text">
+          <h2 id="mock-title">Mock interview</h2>
+          <p class="muted">
+            Get a random unsolved problem from the current filters and solve it
+            against the clock. Explain your thinking out loud.
+          </p>
+        </div>
+        <div class="mock-controls">
+          <label>
+            <span class="sr-only">Session length</span>
+            <select data-mock-duration>
+              <option value="30">30 minutes</option>
+              <option value="45" selected>
+                45 minutes
+              </option>
+              <option value="60">60 minutes</option>
+            </select>
+          </label>
+          <button type="button" class="button-primary" data-mock-start>
+            <Icon name="play" size={16} /> Start mock interview
+          </button>
+        </div>
+      </div>
+      <p class="mock-message" role="status" data-mock-message></p>
+      <div class="mock-session" data-mock-session hidden>
+        <div class="mock-problem">
+          <p class="eyebrow">Your problem</p>
+          <h3>
+            <a
+              data-mock-problem
+              href="/practice/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Problem
+            </a>
+          </h3>
+          <p class="muted" data-mock-meta></p>
+        </div>
+        <p
+          class="mock-clock"
+          role="timer"
+          aria-label="Time remaining"
+          data-mock-clock
+        >
+          45:00
+        </p>
+        <ol class="mock-steps">
+          {steps.map((step) => (
+            <li>{step}</li>
+          ))}
+        </ol>
+        <div class="actions">
+          <button type="button" data-mock-pause>
+            <Icon name="pause" size={16} />
+            <span data-mock-pause-label>Pause</span>
+          </button>
+          <button
+            type="button"
+            class="button-primary"
+            data-mock-finish="solved"
+          >
+            <Icon name="circle-check" size={16} /> Solved it
+          </button>
+          <button type="button" data-mock-finish="review">
+            Needs review
+          </button>
+          <button type="button" class="button-ghost" data-mock-cancel>
+            End session
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="problems-title">
+      <div class="section-head">
+        <h2 id="problems-title">Problems</h2>
+        <p class="muted" role="status" data-problem-count>
+          {plural(problems.length, 'problem')}
+        </p>
+      </div>
+      <form
+        class="filters js-only"
+        aria-label="Filter problems"
+        data-problem-filters
+        data-pagefind-ignore
+      >
+        <label class="filter-search">
+          <Icon name="search" size={16} />
+          <span class="sr-only">Filter by title or topic</span>
+          <input
+            type="search"
+            name="q"
+            placeholder="Filter by title or topic"
+          />
+        </label>
+        <label>
+          <span class="sr-only">Topic</span>
+          <select name="lesson">
+            <option value="">All topics</option>
+            {topicGroups.map((group) => (
+              <optgroup label={group.subject.title}>
+                <option value={`subject:${group.subject.id}`}>
+                  All {group.subject.title}
+                </option>
+                {group.lessons.map((lesson) => (
+                  <option value={lesson.id}>{lessonLabel(lesson)}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span class="sr-only">Difficulty</span>
+          <select name="difficulty">
+            <option value="">Any difficulty</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </label>
+        <label>
+          <span class="sr-only">List</span>
+          <select name="list">
+            <option value="">Any list</option>
+            {lists.map((list) => (
+              <option value={list.id}>{list.name}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span class="sr-only">Status</span>
+          <select name="status">
+            <option value="">Any status</option>
+            {statuses.map(([value, label]) => (
+              <option value={value}>{label}</option>
+            ))}
+          </select>
+        </label>
+        <button type="reset" class="button-ghost">
+          Reset
+        </button>
+      </form>
+      <ul class="problem-list">
+        {problems.map((problem) => (
+          <li
+            class="problem card"
+            data-problem={problem.id}
+            data-title={problem.title}
+            data-url={problem.url}
+            data-difficulty={problem.difficulty}
+            data-lessons={problem.lessons.join(' ')}
+            data-lists={problem.lists.join(' ')}
+            data-text={[
+              problem.title,
+              ...problem.topics,
+              ...problem.lessons.map((id) => lessonLabel(lessonById.get(id)!)),
+            ]
+              .join(' ')
+              .toLowerCase()}
+          >
+            <div class="problem-main">
+              <a
+                class="problem-title"
+                href={problem.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {problem.title}
+                <Icon name="external-link" size={14} />
+                <span class="sr-only"> (opens in a new tab)</span>
+              </a>
+              <p class="problem-tags">
+                <span class="badge" data-difficulty={problem.difficulty}>
+                  {capitalize(problem.difficulty)}
+                </span>
+                {problem.lists.map((id) => (
+                  <span class="badge">{listName(id)}</span>
+                ))}
+                <span class="learn">
+                  Learn first:{' '}
+                  {problem.lessons.map((id, index) => (
+                    <>
+                      {index > 0 && ', '}
+                      <a href={lessonUrl(id)}>
+                        {lessonLabel(lessonById.get(id)!)}
+                      </a>
+                    </>
+                  ))}
+                </span>
+              </p>
+              <details class="hints">
+                <summary>Hints ({problem.hints.length})</summary>
+                <ol>
+                  {problem.hints.map((hint) => (
+                    <li>{hint}</li>
+                  ))}
+                </ol>
+              </details>
+            </div>
+            <select
+              class="status-select js-only"
+              aria-label={`Status for ${problem.title}`}
+              data-problem-status
+            >
+              {statuses.map(([value, label]) => (
+                <option value={value}>{label}</option>
+              ))}
+            </select>
+          </li>
+        ))}
+      </ul>
+      <p class="card empty-state" data-problem-empty hidden>
+        No problems match these filters.
+      </p>
+    </section>
+
+    <section
+      class="sources"
+      aria-labelledby="sources-title"
+      data-pagefind-ignore
+    >
+      <h2 id="sources-title">Where these problems come from</h2>
+      <p class="muted">
+        Problems link to their original source. Statements, editorials and
+        solutions are never copied; hints are original. List membership is
+        checked against each list’s published data.
+      </p>
+      <ul>
+        {banks.map((source) => (
+          <li>
+            <a href={source.url}>{source.name}</a>
+            {source.by && <span class="muted"> · {source.by}</span>}
+          </li>
+        ))}
+      </ul>
+    </section>
+  </div>
+</BaseLayout>
+<script>
+  import { initPractice } from '../../scripts/practice';
+  initPractice();
+</script>
+<style>
+  .header-links {
+    margin: var(--space-4) 0 0;
+  }
+  .header-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .mock {
+    margin-bottom: var(--space-4);
+  }
+  .mock-intro {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .mock-text {
+    flex: 1;
+    min-width: 240px;
+  }
+  .mock-text h2 {
+    margin-bottom: var(--space-1);
+    font-size: var(--text-lg);
+  }
+  .mock-text p {
+    margin: 0;
+    font-size: var(--text-sm);
+  }
+  .mock-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .mock-message:empty {
+    display: none;
+  }
+  .mock-message {
+    margin: var(--space-4) 0 0;
+    font-size: var(--text-sm);
+  }
+  .mock-session {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2) var(--space-6);
+  }
+  .mock-problem h3 {
+    margin-bottom: var(--space-1);
+  }
+  .mock-problem p {
+    margin: 0;
+    font-size: var(--text-sm);
+  }
+  .mock-clock {
+    align-self: start;
+    margin: 0;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius);
+    background: var(--subtle);
+    font-family: var(--font-mono);
+    font-size: var(--text-3xl);
+    font-variant-numeric: tabular-nums;
+  }
+  .mock-steps {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: var(--space-1);
+    margin: var(--space-2) 0;
+    padding-left: var(--space-6);
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+  .mock-session .actions {
+    grid-column: 1 / -1;
+  }
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+  .filters select {
+    font-size: var(--text-sm);
+  }
+  .filter-search {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 220px;
+    padding-left: var(--space-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--muted);
+  }
+  .filter-search:focus-within {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .filter-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    font-size: var(--text-sm);
+  }
+  .problem-list {
+    display: grid;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .problem {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    border-left: 3px solid var(--border);
+  }
+  .problem[data-status='attempted'] {
+    border-left-color: var(--warning);
+  }
+  .problem[data-status='solved'] {
+    border-left-color: var(--success);
+  }
+  .problem[data-status='review'] {
+    border-left-color: var(--error);
+  }
+  .problem-main {
+    flex: 1;
+    min-width: 0;
+  }
+  .problem-title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--text);
+    font-size: var(--text-lg);
+    font-weight: 650;
+    text-decoration: none;
+  }
+  .problem-title:hover {
+    color: var(--accent);
+  }
+  .problem-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: var(--space-2) 0;
+    font-size: var(--text-sm);
+  }
+  .learn {
+    color: var(--muted);
+  }
+  .hints summary {
+    display: inline-block;
+    color: var(--muted);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .hints ol {
+    margin: var(--space-2) 0 0;
+    padding-left: var(--space-5);
+    font-size: var(--text-sm);
+  }
+  .hints li + li {
+    margin-top: var(--space-1);
+  }
+  .status-select {
+    flex: none;
+    font-size: var(--text-sm);
+  }
+  .sources {
+    margin-top: var(--space-12);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--border);
+  }
+  .sources h2 {
+    font-size: var(--text-lg);
+  }
+  .sources p,
+  .sources ul {
+    font-size: var(--text-sm);
+  }
+  .sources ul {
+    display: grid;
+    gap: var(--space-2);
+    padding-left: var(--space-5);
+  }
+  .sources a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+  }
+  @media (max-width: 700px) {
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .filter-search {
+      grid-column: 1 / -1;
+    }
+    .filters select {
+      width: 100%;
+    }
+    .problem {
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .mock-session {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .mock-clock {
+      justify-self: start;
+    }
+  }
+</style>

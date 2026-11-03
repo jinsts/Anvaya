@@ -1,0 +1,5 @@
+name: ECMAScript Language Specification
+kind: specification
+by: Ecma International TC39
+url: https://tc39.es/ecma262/
+description: The normative JavaScript language specification, including Array and Map semantics.

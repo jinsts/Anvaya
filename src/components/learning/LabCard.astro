@@ -1,4 +1,5 @@
 ---
+import Icon from '../ui/Icon.astro';
 interface Props {
   title: string;
   command: string;
@@ -7,26 +8,59 @@ const { title, command } = Astro.props;
 ---
 
 <section class="lab-card">
-  <span class="eyebrow">Independent practice</span>
-  <h3>{title}</h3>
-  <slot />
-  <p>
-    <strong>Run locally from the repository root:</strong>
+  <div class="lab-head">
+    <span class="icon-tile">
+      <Icon name="flask-conical" size={20} />
+    </span>
+    <div>
+      <p class="eyebrow">Independent practice</p>
+      <h3>{title}</h3>
+    </div>
+  </div>
+  <div class="lab-body">
+    <slot />
+  </div>
+  <p class="lab-run">
+    <span>Run locally from the repository root</span>
+    <code>{command}</code>
   </p>
-  <pre><code>{command}</code></pre>
 </section>
 <style>
   .lab-card {
+    max-width: var(--article-measure);
+    margin: var(--space-6) 0;
+    padding: var(--space-5) var(--space-6);
     border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
     background: var(--surface);
-    padding: 1.5rem;
-    border-radius: var(--radius);
-    margin: 1.5rem 0;
+    box-shadow: var(--shadow-sm);
   }
-  .lab-card h3 {
-    margin-top: 0.7rem;
+  .lab-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
   }
-  .lab-card pre {
-    font-size: 0.8rem;
+  .eyebrow {
+    margin: 0;
+  }
+  h3 {
+    margin: 0;
+    font-size: var(--text-lg);
+  }
+  .lab-body {
+    font-size: var(--text-base);
+  }
+  .lab-run {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    margin: var(--space-4) 0 0;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: var(--text-sm);
   }
 </style>

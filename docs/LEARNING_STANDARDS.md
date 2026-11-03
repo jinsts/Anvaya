@@ -10,8 +10,12 @@ Before promoting a lesson from draft, the owner should confirm:
 - Examples match independently executed tests, including edge cases.
 - Practice allows an attempt before hints/solutions; starter tests check the attempt.
 - Reasoning questions explain wrong answers and the recap supports retrieval.
-- Sources were consulted, links work, and no private material was imported.
+- Interview answers are correct, state their assumptions, and agree with the
+  lesson; linked problems apply its ideas and their list memberships are verified.
+- Sources are registered, were consulted, links work, and no private material
+  was imported.
 - Keyboard, theme, mobile and browser checks were actually exercised.
 
 Automated checks do not establish conceptual mastery or replace human review.
-Keep draft status and avoid adding `reviewedAt` until that review happens.
+Keep draft status and avoid adding `reviewedAt` until that review happens. The
+review process is in [playbooks/review-content.md](playbooks/review-content.md).

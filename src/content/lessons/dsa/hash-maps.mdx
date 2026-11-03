@@ -1,5 +1,6 @@
 ---
 title: 'Hash Maps: Find by meaning'
+shortTitle: Hash Maps
 summary: 'Move from positions to keys. Understand hashing, collisions, and the assumptions behind fast lookup.'
 subject: dsa
 path: dsa-foundations
@@ -11,6 +12,46 @@ learningObjectives:
 prerequisites: [dsa/arrays]
 tags: [hashing, keys, lookup]
 status: draft
+drafter: agent
+interviewQuestions:
+  - prompt: Why is hash map lookup described as expected O(1) rather than O(1)?
+    answer: >-
+      The bound assumes a hash that spreads keys well, a bounded load factor, and
+      constant-cost hashing and equality checks. Under those assumptions the
+      expected number of keys compared per lookup is constant. Collisions can still
+      put many keys in one bucket, so the worst case is O(n), and long keys take
+      time proportional to their length to hash or compare.
+    followUps:
+      - What happens if every key lands in the same bucket?
+  - prompt: What is a collision, and how do chaining and open addressing handle it?
+    answer: >-
+      A collision is two different keys mapping to the same bucket. Chaining keeps
+      several entries per bucket and compares keys within it. Open addressing keeps
+      one entry per slot and follows a defined probe sequence to other slots until
+      it finds the key or an empty slot. Both still compare keys for equality.
+    followUps:
+      - Why does open addressing need special handling for deletion?
+  - prompt: Why must a hash table compare keys after hashing?
+    answer: >-
+      Different keys can produce the same hash or bucket index, so reaching the
+      right bucket does not prove the key matches. Equality confirms it. A table
+      that trusted the hash alone would return or overwrite the wrong entry when
+      keys collide.
+  - prompt: What is the load factor, and why do hash tables resize?
+    answer: >-
+      The load factor is entries divided by buckets. As it rises, buckets hold more
+      entries and lookups compare more keys. Growing the bucket array and
+      redistributing entries keeps the load factor bounded. A resize costs O(n) when
+      it happens, but spread over a sequence of insertions it keeps insertion
+      amortized expected O(1).
+    followUps:
+      - Why do implementations grow the bucket array geometrically?
+  - prompt: When is a hash map the wrong choice?
+    answer: >-
+      When you need keys in sorted order, range queries or the k-th smallest key, a
+      hash map provides none of these; a sorted array or balanced tree may fit
+      better. When keys are small dense integers, an array indexed by key can be
+      simpler. JavaScript `Map` keeps insertion order, which is not sorted order.
 sources:
   - label: 'ECMAScript specification — Map objects'
     url: 'https://tc39.es/ecma262/multipage/keyed-collections.html#sec-map-objects'
@@ -18,8 +59,6 @@ sources:
     url: 'https://opendatastructures.org/ods-java/5_Hash_Tables.html'
 ---
 
-import CodeExample from '../../../components/learning/CodeExample.astro';
-import Callout from '../../../components/learning/Callout.astro';
 import example from '../../../../labs/dsa/hash-maps/example.ts?raw';
 
 ## From positions to keys
@@ -63,6 +102,7 @@ special cases are needed for string keys such as `__proto__`.
 <CodeExample
   title="Word frequencies"
   code={example}
+  verified
   output={
     "[...frequencies(['array', 'map', 'array'])]\n→ [['array', 2], ['map', 1]]"
   }

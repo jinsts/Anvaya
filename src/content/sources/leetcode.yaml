@@ -1,0 +1,6 @@
+name: LeetCode
+kind: problem-bank
+url: https://leetcode.com/
+prefixes:
+  - https://leetcode.com/problems/
+description: Widely used interview problem bank. Link to problems; never copy statements or editorials.

@@ -1,0 +1,9 @@
+title: Best Time to Buy and Sell Stock
+url: https://leetcode.com/problems/best-time-to-buy-and-sell-stock/
+difficulty: easy
+lessons: [dsa/arrays]
+topics: [arrays, single-pass]
+lists: [blind-75, neetcode-150]
+hints:
+  - You must buy before you sell. For each day, what is the cheapest price on an earlier day?
+  - Track the minimum price so far and the best profit so far in one left-to-right pass. That is O(n) time and O(1) extra space.

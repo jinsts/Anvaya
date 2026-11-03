@@ -1,0 +1,9 @@
+title: Top K Frequent Elements
+url: https://leetcode.com/problems/top-k-frequent-elements/
+difficulty: medium
+lessons: [dsa/hash-maps]
+topics: [hashing, counting]
+lists: [blind-75, neetcode-150]
+hints:
+  - Count how often each value appears with a map first.
+  - Then choose the k largest counts. A size-k min-heap takes O(n log k); grouping values into buckets indexed by count takes O(n).

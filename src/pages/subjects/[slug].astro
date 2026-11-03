@@ -1,0 +1,220 @@
+---
+import { plural } from '../../lib/format';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../components/ui/Breadcrumbs.astro';
+import Icon from '../../components/ui/Icon.astro';
+import PathCard from '../../components/catalog/PathCard.astro';
+import LessonRow from '../../components/catalog/LessonRow.astro';
+import { getCatalog } from '../../lib/catalog';
+import {
+  categoryAncestors,
+  categoryUrl,
+  pathLessonIds,
+} from '../../lib/path-model';
+export async function getStaticPaths() {
+  const { availableSubjects } = await getCatalog();
+  return availableSubjects.map((subject) => ({
+    params: { slug: subject.id },
+    props: { subjectId: subject.id },
+  }));
+}
+const { subjectId } = Astro.props;
+const {
+  categories,
+  paths,
+  lessons,
+  lessonById,
+  subjectById,
+  problemsByLesson,
+} = await getCatalog();
+const subject = subjectById.get(subjectId)!;
+const trail = categoryAncestors(subject.category, categories);
+const subjectPaths = paths.filter(
+  (path) => path.subject === subject.id && pathLessonIds(path).length > 0,
+);
+const subjectLessons = lessons.filter(
+  (lesson) => lesson.data.subject === subject.id,
+);
+const problemCount = new Set(
+  subjectLessons.flatMap((lesson) =>
+    (problemsByLesson.get(lesson.id) ?? []).map((problem) => problem.id),
+  ),
+).size;
+const minutes = subjectLessons.reduce(
+  (total, lesson) => total + lesson.data.estimatedMinutes,
+  0,
+);
+---
+
+<BaseLayout title={subject.title} description={subject.description}>
+  <div
+    data-pagefind-body
+    data-pagefind-filter="type:Subject"
+    data-pagefind-meta={`subject:${subject.title}`}
+  >
+    <Breadcrumbs
+      items={[
+        { label: 'Explore', href: '/explore/' },
+        ...trail.map((category) => ({
+          label: category.title,
+          href: categoryUrl(category.id),
+        })),
+        { label: subject.title },
+      ]}
+    />
+    <header class="subject-hero" data-tone={subject.tone}>
+      <span class="icon-tile large">
+        <Icon name={subject.icon} size={28} />
+      </span>
+      <div>
+        <p class="eyebrow">Subject</p>
+        <h1>{subject.title}</h1>
+        <p class="lede">{subject.description}</p>
+        <ul class="subject-facts" data-pagefind-ignore>
+          <li>
+            <Icon name="route" size={16} />
+            {plural(subjectPaths.length, 'learning path')}
+          </li>
+          <li>
+            <Icon name="book-open" size={16} />
+            {plural(subjectLessons.length, 'lesson')}
+          </li>
+          <li>
+            <Icon name="clock" size={16} /> {minutes} min
+          </li>
+          {problemCount > 0 && (
+            <li>
+              <Icon name="target" size={16} />{' '}
+              {plural(problemCount, 'practice problem')}
+            </li>
+          )}
+        </ul>
+      </div>
+    </header>
+
+    <section aria-labelledby="subject-paths-title">
+      <div class="section-head">
+        <h2 id="subject-paths-title">Learning paths</h2>
+      </div>
+      {subjectPaths.length ? (
+        <div class="card-grid">
+          {subjectPaths.map((path) => (
+            <PathCard
+              path={path}
+              subject={subject}
+              lessons={pathLessonIds(path).map((id) => lessonById.get(id)!)}
+            />
+          ))}
+        </div>
+      ) : (
+        <p class="card empty-state">
+          There isn’t a guided path for this subject yet. Explore its lessons
+          below.
+        </p>
+      )}
+    </section>
+
+    <section aria-labelledby="subject-lessons-title">
+      <div class="section-head">
+        <h2 id="subject-lessons-title">All lessons</h2>
+        <p class="muted">{plural(subjectLessons.length, 'lesson')}</p>
+      </div>
+      <ol class="card lesson-list">
+        {subjectLessons.map((lesson) => (
+          <LessonRow lesson={lesson} />
+        ))}
+      </ol>
+    </section>
+
+    {problemCount > 0 && (
+      <section
+        class="card practice-cta"
+        aria-labelledby="subject-practice-title"
+      >
+        <span class="icon-tile">
+          <Icon name="target" size={20} />
+        </span>
+        <div>
+          <h2 id="subject-practice-title">Practise for interviews</h2>
+          <p class="muted">
+            {plural(problemCount, 'problem')} from reputable lists are linked to
+            these lessons.
+          </p>
+        </div>
+        <a
+          class="button button-primary"
+          href={`/practice/?lesson=${encodeURIComponent(`subject:${subject.id}`)}`}
+        >
+          Open practice <Icon name="arrow-right" size={16} />
+        </a>
+      </section>
+    )}
+  </div>
+</BaseLayout>
+<style>
+  .subject-hero {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-6);
+    padding: var(--space-8);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(circle at 100% 0%, var(--tone-soft), transparent 55%),
+      var(--surface);
+    box-shadow: var(--shadow-sm);
+  }
+  .subject-hero .eyebrow {
+    color: var(--tone);
+  }
+  .subject-hero h1 {
+    margin-bottom: var(--space-3);
+  }
+  .subject-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    margin: var(--space-5) 0 0;
+    padding: 0;
+    list-style: none;
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+  .subject-facts li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .lesson-list {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    list-style: none;
+  }
+  .practice-cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4);
+    margin-top: var(--space-10);
+  }
+  .practice-cta div {
+    flex: 1;
+    min-width: 220px;
+  }
+  .practice-cta h2 {
+    margin-bottom: var(--space-1);
+    font-size: var(--text-lg);
+  }
+  .practice-cta p {
+    margin: 0;
+  }
+  @media (max-width: 600px) {
+    .subject-hero {
+      padding: var(--space-5);
+    }
+    .subject-hero .icon-tile {
+      display: none;
+    }
+  }
+</style>

@@ -1,0 +1,49 @@
+---
+import Icon from './Icon.astro';
+import type { IconName } from '../../lib/icons';
+interface Props {
+  title: string;
+  description?: string;
+  eyebrow?: string;
+  icon?: IconName;
+  tone?: string;
+}
+const { title, description, eyebrow, icon, tone } = Astro.props;
+---
+
+<header class="page-header" data-tone={tone}>
+  {icon && (
+    <span class="icon-tile large">
+      <Icon name={icon} size={26} />
+    </span>
+  )}
+  <div class="page-header-text">
+    {eyebrow && <p class="eyebrow">{eyebrow}</p>}
+    <h1>{title}</h1>
+    {description && <p class="lede">{description}</p>}
+    <slot />
+  </div>
+</header>
+<style>
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-5);
+    margin-bottom: var(--space-8);
+  }
+  .page-header-text {
+    min-width: 0;
+  }
+  h1 {
+    margin-bottom: var(--space-2);
+    font-size: var(--text-3xl);
+  }
+  .lede {
+    margin-bottom: 0;
+  }
+  @media (max-width: 600px) {
+    .icon-tile {
+      display: none;
+    }
+  }
+</style>

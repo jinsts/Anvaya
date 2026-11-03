@@ -1,308 +1,376 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import LessonCard from '../components/learning/LessonCard.astro';
+import Icon from '../components/ui/Icon.astro';
+import PathCard from '../components/catalog/PathCard.astro';
+import SubjectCard from '../components/catalog/SubjectCard.astro';
+import { capitalize, plural } from '../lib/format';
 import { getCatalog } from '../lib/catalog';
-import { lessonUrl, pathUrl } from '../lib/path-model';
-const { lessons, paths } = await getCatalog();
-const featured = paths[0]!;
-const first = lessons.find((lesson) => lesson.id === featured.lessons[0])!;
+import { categoryAncestors, lessonUrl, pathLessonIds } from '../lib/path-model';
+const {
+  lessons,
+  lessonById,
+  paths,
+  categories,
+  subjectById,
+  availableSubjects: subjects,
+  problems,
+  problemsByLesson,
+} = await getCatalog();
+const activePaths = paths.filter((path) => pathLessonIds(path).length > 0);
+// Paths are sorted by `order`, so the first one is the suggested starting point.
+const startPath = activePaths[0];
+const startLesson = startPath
+  ? lessonById.get(pathLessonIds(startPath)[0]!)
+  : lessons[0];
+const questionCount = lessons.reduce(
+  (count, lesson) => count + lesson.data.interviewQuestions.length,
+  0,
+);
+const subjectStats = (id: string) => {
+  const subjectLessons = lessons.filter((lesson) => lesson.data.subject === id);
+  return {
+    lessons: subjectLessons.length,
+    paths: activePaths.filter((path) => path.subject === id).length,
+    problems: new Set(
+      subjectLessons.flatMap((lesson) =>
+        (problemsByLesson.get(lesson.id) ?? []).map((problem) => problem.id),
+      ),
+    ).size,
+  };
+};
 ---
 
-<BaseLayout title="Your learning workspace">
-  <div class="welcome-line">
-    <span class="eyebrow">Your personal learning workspace</span>
-    <span class="edition">FOUNDATION / 01</span>
-  </div>
-  <section class="home-hero">
+<BaseLayout title="Home">
+  <header class="home-header">
     <div>
-      <h1>
-        Connect concepts.
-        <br />
-        <em>Build understanding.</em>
-      </h1>
+      <p class="eyebrow">Your learning workspace</p>
+      <h1>Connect concepts. Build understanding.</h1>
       <p class="lede">
-        Go beyond knowing the answer. Explore the mechanism, test your
-        intuition, and make the idea your own.
-      </p>
-      <div class="actions">
-        <a class="button" href={lessonUrl(first.id)}>
-          Start with Arrays <span aria-hidden="true">↗</span>
-        </a>
-        <a class="button secondary" href="/paths/">
-          Explore learning paths
-        </a>
-      </div>
-      <p class="hero-note">
-        A little theory. A working model. Something to try.
+        Pick up where you left off, follow a path, or rehearse for interviews.
       </p>
     </div>
-    <figure class="hero-model" aria-label="Array mental model preview">
-      <div class="model-label">
-        <span class="eyebrow">One idea, made tangible</span>
-        <span class="model-dot" aria-hidden="true"></span>
+    <dl class="library-stats" aria-label="Library contents">
+      <div>
+        <dt>Subjects</dt>
+        <dd>{subjects.length}</dd>
       </div>
-      <p class="model-code">const idea = [12, 24, 36, 48]</p>
-      <div class="preview-cells">
-        {[12, 24, 36, 48].map((value, i) => (
-          <div class:list={['preview-cell', { selected: i === 2 }]}>
-            <small>index {i}</small>
-            <strong>{value}</strong>
-            {i === 2 && (
-              <span class="pointer" aria-hidden="true">
-                ↑
-              </span>
-            )}
-          </div>
+      <div>
+        <dt>Paths</dt>
+        <dd>{activePaths.length}</dd>
+      </div>
+      <div>
+        <dt>Lessons</dt>
+        <dd>{lessons.length}</dd>
+      </div>
+      <div>
+        <dt>Problems</dt>
+        <dd>{problems.length}</dd>
+      </div>
+    </dl>
+  </header>
+
+  <div class="home-top">
+    {startLesson && (
+      <section
+        class="card continue"
+        aria-labelledby="continue-title"
+        data-continue
+        data-tone={subjectById.get(startLesson.data.subject)?.tone}
+      >
+        <p class="eyebrow" data-continue-label>
+          Start here
+        </p>
+        <h2 id="continue-title">
+          <a href={lessonUrl(startLesson.id)} data-continue-link>
+            {startLesson.data.title}
+          </a>
+        </h2>
+        <p class="muted" data-continue-summary>
+          {startLesson.data.summary}
+        </p>
+        <div class="continue-foot">
+          <p class="continue-facts" data-continue-static>
+            <span>
+              <Icon name="clock" size={15} />{' '}
+              {startLesson.data.estimatedMinutes} min
+            </span>
+            <span>
+              <Icon name="signal" size={15} />{' '}
+              {capitalize(startLesson.data.difficulty)}
+            </span>
+          </p>
+          <a
+            class="button button-primary"
+            href={lessonUrl(startLesson.id)}
+            data-continue-link
+          >
+            <span data-continue-button-label>Start lesson</span>
+            <Icon name="arrow-right" size={16} />
+          </a>
+        </div>
+      </section>
+    )}
+    <section
+      class="card practice-summary"
+      aria-labelledby="practice-title"
+      data-practice-summary
+      data-problem-ids={problems.map((problem) => problem.id).join(' ')}
+    >
+      <div class="practice-head">
+        <span class="icon-tile">
+          <Icon name="target" size={20} />
+        </span>
+        <h2 id="practice-title">Interview practice</h2>
+      </div>
+      <p class="practice-counts">
+        <span data-solved-text>
+          {plural(problems.length, 'practice problem')}
+        </span>
+        <span data-review-text>
+          {plural(questionCount, 'question')} to rehearse
+        </span>
+      </p>
+      <div
+        class="progress js-only"
+        role="progressbar"
+        aria-label="Problems solved"
+        aria-valuemin="0"
+        aria-valuemax={problems.length}
+        aria-valuenow="0"
+        data-progress-bar
+      ></div>
+      <div class="actions">
+        <a class="button" href="/practice/">
+          <Icon name="target" size={16} /> Practice problems
+        </a>
+        <a class="button" href="/practice/questions/">
+          <Icon name="message-circle-question-mark" size={16} /> Drill questions
+        </a>
+      </div>
+    </section>
+  </div>
+
+  {activePaths.length > 0 && (
+    <section aria-labelledby="paths-title">
+      <div class="section-head">
+        <h2 id="paths-title">Learning paths</h2>
+        <a href="/paths/">
+          All paths <Icon name="arrow-right" size={16} />
+        </a>
+      </div>
+      <div class="card-grid">
+        {activePaths.slice(0, 6).map((path) => (
+          <PathCard
+            path={path}
+            subject={subjectById.get(path.subject)!}
+            lessons={pathLessonIds(path).map((id) => lessonById.get(id)!)}
+          />
         ))}
       </div>
-      <div class="model-explanation">
-        <span class="badge">O(1)</span>
-        <p>
-          A known index points straight to a value.
-          <br />
-          <span class="muted">No need to visit every cell.</span>
-        </p>
+    </section>
+  )}
+
+  <section aria-labelledby="subjects-title">
+    <div class="section-head">
+      <h2 id="subjects-title">Subjects</h2>
+      <a href="/explore/">
+        Explore subjects <Icon name="arrow-right" size={16} />
+      </a>
+    </div>
+    {subjects.length ? (
+      <div class="card-grid">
+        {subjects.slice(0, 6).map((subject) => (
+          <SubjectCard
+            subject={subjectById.get(subject.id)!}
+            trail={categoryAncestors(subject.category, categories)
+              .map((category) => category.title)
+              .join(' / ')}
+            {...subjectStats(subject.id)}
+          />
+        ))}
       </div>
-      <figcaption>Understand the model. Then test its limits.</figcaption>
-    </figure>
+    ) : (
+      <p class="card empty-state">
+        Your library is ready for its first subject.
+      </p>
+    )}
   </section>
-  <section class="continue-panel panel" aria-labelledby="continue-title">
-    <div class="continue-icon" aria-hidden="true">
-      ↗
-    </div>
+
+  <section class="data-panel" aria-labelledby="data-title">
     <div>
-      <span class="eyebrow">Continue learning</span>
-      <h2 id="continue-title">Your first connection starts here.</h2>
+      <h2 id="data-title">Your progress data</h2>
       <p class="muted">
-        Begin with indexed storage, then see what changes when you need to find
-        a value by a key.
+        Progress is saved only in this browser. Export it as a backup or to move
+        it to another device.
       </p>
     </div>
-    <a href={pathUrl(featured.id)} class="button secondary">
-      Open DSA foundations →
-    </a>
-  </section>
-  <div class="section-heading">
-    <h2>A foundation to build on</h2>
-    <a href={pathUrl(featured.id)}>View the path →</a>
-  </div>
-  <div class="path-context">
-    <span class="eyebrow">01 / Data Structures & Algorithms</span>
-    <p class="muted">Two connected lessons. One deliberate starting point.</p>
-  </div>
-  <div class="card-grid">
-    {featured.lessons.map((id, i) => (
-      <LessonCard
-        lesson={lessons.find((lesson) => lesson.id === id)!}
-        number={i + 1}
-      />
-    ))}
-  </div>
-  <section class="learning-note">
-    <span class="eyebrow">Built for understanding</span>
-    <div>
-      <h2>
-        Learn it. Try it.
-        <br />
-        Explain it back.
-      </h2>
-      <p class="muted">
-        Every lesson connects a mental model to an experiment, a local exercise,
-        and a short recap. Take your time. The goal is understanding you can
-        return to.
-      </p>
+    <div class="actions js-only">
+      <button type="button" data-progress-export>
+        <Icon name="download" size={16} /> Export
+      </button>
+      <label class="button">
+        <Icon name="upload" size={16} /> Import
+        <input
+          class="sr-only"
+          type="file"
+          accept="application/json,.json"
+          data-progress-import
+        />
+      </label>
+      <button type="button" data-progress-clear>
+        <Icon name="trash" size={16} /> Clear
+      </button>
     </div>
+    <p class="data-message" role="status" data-progress-message></p>
   </section>
 </BaseLayout>
 <style>
-  .welcome-line {
+  .home-header {
     display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
     justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
+    gap: var(--space-6);
+    margin-bottom: var(--space-8);
   }
-  .edition {
-    color: var(--muted);
-    font: 0.65rem var(--font-mono);
-    letter-spacing: 0.1em;
+  .home-header h1 {
+    margin-bottom: var(--space-2);
   }
-  .home-hero {
-    display: grid;
-    grid-template-columns: 1.25fr 1fr;
-    gap: 2rem;
-    align-items: center;
-    padding: 2rem 0 3rem;
+  .home-header .lede {
+    margin: 0;
   }
-  h1 {
-    font-size: clamp(2.6rem, 4.1vw, 4.8rem);
+  .library-stats {
+    display: flex;
+    gap: var(--space-2);
+    margin: 0;
   }
-  h1 em {
-    font-weight: 400;
-    color: var(--accent);
-  }
-  .hero-note {
-    font: 0.75rem var(--font-mono);
-    color: var(--muted);
-    margin-top: 1.5rem;
-  }
-  .hero-model {
+  .library-stats div {
+    min-width: 76px;
+    padding: var(--space-2) var(--space-4);
     border: 1px solid var(--border);
-    background: var(--subtle);
     border-radius: var(--radius);
-    margin: 0;
-    padding: 1.5rem;
-    transform: rotate(-1deg);
-  }
-  .model-label {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .model-label .eyebrow {
-    font-size: 0.6rem;
-  }
-  .model-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--accent);
-  }
-  .model-code {
-    font: 0.75rem var(--font-mono);
-    color: var(--muted);
-    margin: 2.5rem 0 1rem;
-  }
-  .preview-cells {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.4rem;
-    padding-bottom: 2rem;
-  }
-  .preview-cell {
-    position: relative;
-    text-align: center;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.65rem 0.25rem;
   }
-  .preview-cell small {
-    display: block;
-    font: 0.6rem var(--font-mono);
+  .library-stats dt {
     color: var(--muted);
+    font-size: var(--text-xs);
   }
-  .preview-cell strong {
-    font: 1.8rem var(--font-display);
-  }
-  .selected small {
-    color: var(--text);
-  }
-  .selected {
-    background: var(--diagram-active);
-    color: var(--text);
-    border-color: var(--accent);
-  }
-  .pointer {
-    position: absolute;
-    top: 100%;
-    left: 45%;
-    color: var(--accent);
-    font-size: 1.4rem;
-  }
-  .model-explanation {
-    display: flex;
-    align-items: start;
-    gap: 0.8rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border);
-  }
-  .model-explanation p {
-    font-size: 0.76rem;
+  .library-stats dd {
     margin: 0;
+    font-size: var(--text-xl);
+    font-weight: 700;
   }
-  figcaption {
-    font: italic 0.8rem var(--font-display);
+  .home-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+  .continue {
+    display: flex;
+    flex-direction: column;
+    background:
+      radial-gradient(circle at 100% 0%, var(--tone-soft), transparent 60%),
+      var(--surface);
+  }
+  .continue .eyebrow {
+    color: var(--tone);
+  }
+  .continue h2 {
+    margin-bottom: var(--space-2);
+    font-size: var(--text-2xl);
+  }
+  .continue h2 a {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .continue h2 a:hover {
+    color: var(--accent);
+  }
+  .continue-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-top: auto;
+  }
+  .continue-facts {
+    display: flex;
+    gap: var(--space-4);
+    margin: 0;
     color: var(--muted);
-    margin-top: 1.5rem;
+    font-size: var(--text-sm);
   }
-  .continue-panel {
+  .continue-facts span {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+  .practice-summary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .practice-head {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
-    box-shadow: none;
+    gap: var(--space-3);
   }
-  .continue-icon {
-    display: grid;
-    place-items: center;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: var(--accent-soft);
-    color: var(--accent);
-    font-size: 1.6rem;
-    flex-shrink: 0;
-  }
-  .continue-panel h2 {
-    font-size: 1.65rem;
-    margin: 0.5rem 0;
-  }
-  .continue-panel p {
+  .practice-head h2 {
     margin: 0;
-    font-size: 0.85rem;
+    font-size: var(--text-lg);
   }
-  .continue-panel .button {
-    margin-left: auto;
-    flex-shrink: 0;
-    font-size: 0.8rem;
+  .practice-counts {
+    display: grid;
+    gap: var(--space-1);
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--text-sm);
   }
-  .path-context p {
-    font-size: 0.85rem;
-    margin: 0.5rem 0 1.5rem;
+  .practice-summary .actions {
+    margin-top: auto;
   }
-  .learning-note {
-    margin: 4rem 0 1rem;
-    padding-top: 2rem;
+  .data-panel {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-top: var(--space-12);
+    padding-top: var(--space-6);
     border-top: 1px solid var(--border);
   }
-  .learning-note > div {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-    margin-top: 1rem;
+  .data-panel h2 {
+    margin-bottom: var(--space-1);
+    font-size: var(--text-base);
   }
-  .learning-note p {
-    max-width: 48ch;
-    font-size: 0.9rem;
+  .data-panel p {
+    margin: 0;
+    font-size: var(--text-sm);
   }
-  @media (max-width: 1200px) {
-    .home-hero {
-      grid-template-columns: 1fr;
-    }
-    .hero-model {
-      max-width: 540px;
-      transform: none;
-    }
-    .continue-panel {
-      flex-wrap: wrap;
-    }
-    .continue-panel .button {
-      margin-left: 0;
+  .data-panel label:focus-within {
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+  }
+  .data-message:empty {
+    display: none;
+  }
+  .data-message {
+    flex-basis: 100%;
+  }
+  @media (max-width: 900px) {
+    .home-top {
+      grid-template-columns: minmax(0, 1fr);
     }
   }
   @media (max-width: 600px) {
-    .edition {
-      display: none;
+    .library-stats {
+      width: 100%;
     }
-    .learning-note > div {
-      grid-template-columns: 1fr;
-      gap: 0;
-    }
-    .section-heading {
-      align-items: start;
-      flex-direction: column;
-    }
-    .continue-icon {
-      display: none;
+    .library-stats div {
+      flex: 1;
+      min-width: 0;
+      padding: var(--space-2) var(--space-3);
     }
   }
 </style>

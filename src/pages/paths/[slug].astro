@@ -1,51 +1,255 @@
 ---
+import { plural } from '../../lib/format';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import LessonCard from '../../components/learning/LessonCard.astro';
-import { getCatalog } from '../../lib/catalog';
-import { lessonUrl } from '../../lib/path-model';
+import Breadcrumbs from '../../components/ui/Breadcrumbs.astro';
+import Icon from '../../components/ui/Icon.astro';
+import LessonRow from '../../components/catalog/LessonRow.astro';
+import { getCatalog, lessonUrlIn } from '../../lib/catalog';
+import {
+  pathLessonIds,
+  pathSections,
+  plannedCount,
+  subjectUrl,
+} from '../../lib/path-model';
 export async function getStaticPaths() {
   const { paths } = await getCatalog();
   return paths.map((path) => ({ params: { slug: path.id }, props: { path } }));
 }
 const { path } = Astro.props;
-const { lessons } = await getCatalog();
-const ordered = path.lessons.map((id: string) =>
-  lessons.find((lesson) => lesson.id === id)!,
+const { lessonById, subjectById } = await getCatalog();
+const subject = subjectById.get(path.subject)!;
+const ids = pathLessonIds(path);
+const ordered = ids.map((id) => lessonById.get(id)!);
+const sections = pathSections(path);
+const planned = plannedCount(path);
+const first = ordered[0];
+const minutes = ordered.reduce(
+  (sum, lesson) => sum + lesson.data.estimatedMinutes,
+  0,
 );
 ---
 
-<BaseLayout title={path.title}>
-  <header class="page-intro">
-    <a href="/paths/">← All learning paths</a>
-    <p class="eyebrow" style="margin-top: 2rem">
-      Path 01 / Foundations
-    </p>
-    <h1>{path.title}</h1>
-    <p class="lede">{path.description}</p>
-    <div class="actions">
-      <span class="badge">{ordered.length} lessons</span>
-      <span class="badge">
-        {ordered.reduce((sum, lesson) => sum + lesson.data.estimatedMinutes, 0)}{' '}
-        minutes of learning & practice
+<BaseLayout title={path.title} activePath={path}>
+  <div
+    data-progress-scope
+    data-pagefind-body
+    data-pagefind-filter="type:Learning path"
+    data-pagefind-meta={`subject:${subject.title}`}
+  >
+    <Breadcrumbs
+      items={[
+        { label: 'Explore', href: '/explore/' },
+        { label: subject.title, href: subjectUrl(subject.id) },
+        { label: 'Learning path' },
+      ]}
+    />
+    <header class="path-hero" data-tone={subject.tone}>
+      <span class="icon-tile large">
+        <Icon name={subject.icon} size={28} />
       </span>
-    </div>
-  </header>
-  <section class="panel">
-    <span class="eyebrow">Before you start</span>
-    <p>
-      Bring basic TypeScript familiarity: variables, functions, and loops. Start
-      with Arrays; Hash Maps builds on that indexed-storage model.
-    </p>
-    <a class="button" href={lessonUrl(ordered[0]!.id)}>
-      Begin the path →
-    </a>
-  </section>
-  <div class="section-heading">
-    <h2>Your route through the ideas</h2>
-  </div>
-  <div class="card-grid">
-    {ordered.map((lesson, i) => (
-      <LessonCard lesson={lesson} number={i + 1} />
+      <div class="path-hero-text">
+        <p class="eyebrow">Learning path · {subject.title}</p>
+        <h1>{path.title}</h1>
+        <p class="lede">{path.description}</p>
+        <ul class="path-facts" data-pagefind-ignore>
+          <li>
+            <Icon name="book-open" size={16} />
+            {plural(ordered.length, 'lesson')}
+          </li>
+          <li>
+            <Icon name="clock" size={16} /> {minutes} min
+          </li>
+          <li>
+            <Icon name="layers" size={16} />
+            {plural(sections.length, 'section')}
+          </li>
+          {planned > 0 && (
+            <li>
+              <Icon name="circle-dashed" size={16} /> {planned} planned
+            </li>
+          )}
+        </ul>
+        <div class="path-actions" data-pagefind-ignore>
+          {first && (
+            <a
+              class="button button-primary"
+              href={lessonUrlIn(first, path.id)}
+              data-progress-resume
+            >
+              <span data-progress-resume-label>Begin the path</span>
+              <Icon name="arrow-right" size={16} />
+            </a>
+          )}
+          <div class="hero-progress js-only">
+            <div
+              class="progress"
+              role="progressbar"
+              aria-label={`Progress in ${path.title}`}
+              aria-valuemin="0"
+              aria-valuemax={ordered.length}
+              aria-valuenow="0"
+              data-progress-bar
+            ></div>
+            <span data-progress-text>0 of {ordered.length} complete</span>
+          </div>
+        </div>
+      </div>
+    </header>
+    {sections.map((section, sectionIndex) => (
+      <section class="syllabus" aria-labelledby={`section-${section.id}`}>
+        <div class="section-head">
+          <h2 id={`section-${section.id}`}>
+            <span class="section-index" aria-hidden="true">
+              {String(sectionIndex + 1).padStart(2, '0')}
+            </span>
+            {section.title}
+          </h2>
+          <p class="muted">
+            {plural(section.lessons.length, 'lesson')}
+            {section.planned?.length
+              ? ` · ${section.planned.length} planned`
+              : ''}
+          </p>
+        </div>
+        <ol class="card syllabus-list">
+          {section.lessons.map((id) => (
+            <LessonRow
+              lesson={lessonById.get(id)!}
+              number={ids.indexOf(id) + 1}
+              pathId={path.id}
+            />
+          ))}
+          {section.planned?.map((topic) => (
+            <li class="planned-row">
+              <span class="planned-marker" aria-hidden="true">
+                <Icon name="circle-dashed" size={18} />
+              </span>
+              <span class="planned-title">{topic}</span>
+              <span class="badge">Planned</span>
+            </li>
+          ))}
+        </ol>
+      </section>
     ))}
+    <a class="all-paths" href="/paths/">
+      <Icon name="arrow-left" size={15} /> All learning paths
+    </a>
   </div>
 </BaseLayout>
+<style>
+  .path-hero {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-6);
+    padding: var(--space-8);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(circle at 100% 0%, var(--tone-soft), transparent 55%),
+      var(--surface);
+    box-shadow: var(--shadow-sm);
+  }
+  .path-hero-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .path-hero .eyebrow {
+    color: var(--tone);
+  }
+  .path-hero h1 {
+    margin-bottom: var(--space-3);
+  }
+  .path-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    margin: var(--space-5) 0;
+    padding: 0;
+    list-style: none;
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+  .path-facts li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .path-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4) var(--space-6);
+  }
+  .hero-progress {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 200px;
+    max-width: 360px;
+    color: var(--muted);
+    font-size: var(--text-sm);
+    white-space: nowrap;
+  }
+  .hero-progress .progress {
+    flex: 1;
+  }
+  .section-head h2 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .section-index {
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: 500;
+  }
+  .syllabus-list {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    list-style: none;
+  }
+  .planned-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    border-top: 1px solid var(--border);
+    background: var(--subtle);
+    color: var(--muted);
+  }
+  .syllabus-list > .planned-row:first-child {
+    border-top: 0;
+  }
+  .planned-marker {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+  }
+  .all-paths {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-10);
+    font-size: var(--text-sm);
+    text-decoration: none;
+  }
+  @media (max-width: 600px) {
+    .path-hero {
+      padding: var(--space-5);
+    }
+    .path-hero > .icon-tile {
+      display: none;
+    }
+  }
+</style>

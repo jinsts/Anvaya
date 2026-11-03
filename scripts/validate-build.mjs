@@ -15,6 +15,8 @@ async function walk(directory) {
   return nested.flat();
 }
 const files = await walk(root);
+const fileSet = new Set(files);
+// Keep only IDs and links per page so memory stays flat as the library grows.
 const pages = new Map();
 for (const file of files.filter((name) => name.endsWith('.html'))) {
   const route =
@@ -34,15 +36,15 @@ for (const file of files.filter((name) => name.endsWith('.html'))) {
     throw new Error(`Expected one main heading: ${route}`);
   if ($('img:not([alt])').length)
     throw new Error(`Image missing alternative text: ${route}`);
-  pages.set(route, { $, ids: new Set(ids) });
-}
-for (const [route, { $, ids }] of pages) {
-  if (route.startsWith('/learn/') && !ids.has('two-minute-recap'))
+  if (route.startsWith('/learn/') && !ids.includes('two-minute-recap'))
     throw new Error(`Lesson needs recap: ${route}`);
-  for (const element of $(
-    'a[href], script[src], link[href], img[src]',
-  ).toArray()) {
-    const href = $(element).attr('href') ?? $(element).attr('src');
+  const links = $('a[href], script[src], link[href], img[src]')
+    .map((_, element) => $(element).attr('href') ?? $(element).attr('src'))
+    .get();
+  pages.set(route, { ids: new Set(ids), links });
+}
+for (const [route, { links }] of pages) {
+  for (const href of links) {
     if (!href || /^(https?:|mailto:|tel:|data:)/.test(href)) continue;
     const url = new URL(href, `http://anvaya.local${route}`);
     const target = pages.get(url.pathname) ?? pages.get(url.pathname + '/');
@@ -50,7 +52,7 @@ for (const [route, { $, ids }] of pages) {
       if (url.hash && !target.ids.has(decodeURIComponent(url.hash.slice(1))))
         throw new Error(`Broken anchor: ${route} → ${href}`);
     } else if (
-      !files.includes(path.join(root, decodeURIComponent(url.pathname)))
+      !fileSet.has(path.join(root, decodeURIComponent(url.pathname)))
     ) {
       throw new Error(`Broken local link: ${route} → ${href}`);
     }

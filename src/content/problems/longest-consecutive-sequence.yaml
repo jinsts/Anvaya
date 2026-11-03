@@ -1,0 +1,9 @@
+title: Longest Consecutive Sequence
+url: https://leetcode.com/problems/longest-consecutive-sequence/
+difficulty: medium
+lessons: [dsa/hash-maps]
+topics: [hashing, sets]
+lists: [blind-75, neetcode-150]
+hints:
+  - Sorting gives O(n log n). Could a set tell you where each run of consecutive values starts?
+  - A value starts a run only when value − 1 is absent. Counting upward from each start visits every value once overall, so the total is expected O(n).

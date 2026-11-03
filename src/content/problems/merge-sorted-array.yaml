@@ -1,0 +1,9 @@
+title: Merge Sorted Array
+url: https://leetcode.com/problems/merge-sorted-array/
+difficulty: easy
+lessons: [dsa/arrays]
+topics: [arrays, in-place]
+hints:
+  - The first array holds m values followed by n empty slots. Filling it from the front would overwrite values you still need.
+  - Write from the back. Compare the largest remaining value of each array and place the larger one at the last free index.
+  - When the first array runs out, copy what remains of the second. That is O(m + n) time and O(1) extra space.

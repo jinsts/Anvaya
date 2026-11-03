@@ -1,16 +1,21 @@
 ---
+import Icon from '../ui/Icon.astro';
 interface Props {
   id: string;
   question: string;
   options: { label: string; explanation: string; correct?: boolean }[];
 }
 const { id, question, options } = Astro.props;
+if (options.filter((option) => option.correct).length !== 1)
+  throw new Error(`ConceptCheck "${id}" needs exactly one correct option.`);
 ---
 
 <form class="concept-check" data-quiz>
   <fieldset>
     <legend>
-      <span class="eyebrow">Check your mental model</span>
+      <span class="eyebrow">
+        <Icon name="lightbulb" size={14} /> Check your mental model
+      </span>
       <span class="question">{question}</span>
     </legend>
     {options.map((option, i) => (
@@ -23,12 +28,14 @@ const { id, question, options } = Astro.props;
           data-explanation={option.explanation}
           required
         />
-        {option.label}
+        <span>{option.label}</span>
       </label>
     ))}
   </fieldset>
   <div class="actions">
-    <button type="submit">Check reasoning</button>
+    <button type="submit" class="button-primary">
+      Check reasoning
+    </button>
     <button type="reset">Try again</button>
   </div>
   <p class="quiz-feedback" role="status" aria-live="polite"></p>
@@ -39,53 +46,102 @@ const { id, question, options } = Astro.props;
     form.addEventListener('submit', (event) => {
       event.preventDefault();
       const chosen = form.querySelector<HTMLInputElement>('input:checked');
-      if (feedback && chosen) {
-        feedback.textContent = `${chosen.dataset.correct === 'true' ? 'Exactly.' : 'Reconsider.'} ${chosen.dataset.explanation}`;
-      }
+      if (!feedback || !chosen) return;
+      const correct = chosen.dataset.correct === 'true';
+      form.dataset.result = correct ? 'correct' : 'incorrect';
+      form
+        .querySelectorAll('label')
+        .forEach((label) =>
+          label.toggleAttribute('data-chosen', label.contains(chosen)),
+        );
+      feedback.textContent = `${correct ? 'Exactly.' : 'Reconsider.'} ${chosen.dataset.explanation}`;
     });
     form.addEventListener('reset', () => {
+      delete form.dataset.result;
+      form
+        .querySelectorAll('label')
+        .forEach((label) => label.removeAttribute('data-chosen'));
       if (feedback) feedback.textContent = '';
     });
   });
 </script>
 <style>
   .concept-check {
-    margin: 2rem 0;
-    padding: 1.5rem;
-    background: var(--accent-soft);
-    border-radius: var(--radius);
+    max-width: var(--article-measure);
+    margin: var(--space-8) 0;
+    padding: var(--space-6);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
   }
   fieldset {
-    padding: 0;
     margin: 0;
+    padding: 0;
     border: 0;
   }
   legend {
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-4);
   }
-  legend span {
-    display: block;
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--accent);
   }
   .question {
-    margin-top: 0.75rem;
+    display: block;
+    font-size: var(--text-lg);
     font-weight: 600;
+    line-height: var(--leading-snug);
   }
   label {
     display: flex;
     align-items: baseline;
-    gap: 0.7rem;
-    padding: 0.65rem 0;
-    font-size: 0.9rem;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: var(--text-base);
     cursor: pointer;
   }
+  label:hover {
+    border-color: var(--border-strong);
+    background: var(--subtle);
+  }
   input {
+    min-height: auto;
     accent-color: var(--accent);
   }
+  [data-result='correct'] label[data-chosen] {
+    border-color: var(--success);
+    background: var(--success-soft);
+  }
+  [data-result='incorrect'] label[data-chosen] {
+    border-color: var(--error);
+    background: var(--error-soft);
+  }
   .actions {
-    margin: 1rem 0;
+    margin: var(--space-5) 0 0;
   }
   .quiz-feedback {
     margin: 0;
-    font-size: 0.85rem;
+    font-size: var(--text-base);
+  }
+  .quiz-feedback:not(:empty) {
+    margin-top: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background: var(--accent-soft);
+  }
+  [data-result='correct'] .quiz-feedback {
+    border-color: var(--success);
+    background: var(--success-soft);
+  }
+  [data-result='incorrect'] .quiz-feedback {
+    border-color: var(--error);
+    background: var(--error-soft);
   }
 </style>

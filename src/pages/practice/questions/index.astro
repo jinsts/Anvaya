@@ -1,0 +1,97 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../../components/ui/Breadcrumbs.astro';
+import PageHeader from '../../../components/ui/PageHeader.astro';
+import Icon from '../../../components/ui/Icon.astro';
+import { plural } from '../../../lib/format';
+import { getCatalog } from '../../../lib/catalog';
+const { availableSubjects, lessons, subjectById } = await getCatalog();
+const subjects = availableSubjects
+  .map((subject) => {
+    const withQuestions = lessons.filter(
+      (lesson) =>
+        lesson.data.subject === subject.id &&
+        lesson.data.interviewQuestions.length > 0,
+    );
+    return {
+      subject: subjectById.get(subject.id)!,
+      lessons: withQuestions.length,
+      questions: withQuestions.reduce(
+        (count, lesson) => count + lesson.data.interviewQuestions.length,
+        0,
+      ),
+    };
+  })
+  .filter((entry) => entry.questions > 0);
+---
+
+<BaseLayout title="Question drill">
+  <Breadcrumbs
+    items={[
+      { label: 'Practice', href: '/practice/' },
+      { label: 'Question drill' },
+    ]}
+  />
+  <PageHeader
+    title="Question drill"
+    description="Rehearse interview questions out loud, one subject at a time. Questions you mark for review come back first."
+    icon="message-circle-question-mark"
+  />
+  {subjects.length ? (
+    <ul class="card-grid drill-subjects">
+      {subjects.map(({ subject, lessons, questions }) => (
+        <li>
+          <a
+            class="card card-link drill-subject"
+            href={`/practice/questions/${subject.id}/`}
+            data-tone={subject.tone}
+          >
+            <span class="icon-tile">
+              <Icon name={subject.icon} size={20} />
+            </span>
+            <span class="drill-title">{subject.title}</span>
+            <span class="muted">
+              {plural(questions, 'question')} from {plural(lessons, 'lesson')}
+            </span>
+            <span class="drill-start">
+              Start drill <Icon name="arrow-right" size={16} />
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p class="card empty-state">
+      No interview questions yet. Lessons add them in their frontmatter.
+    </p>
+  )}
+</BaseLayout>
+<style>
+  .drill-subjects {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .drill-subject {
+    display: grid;
+    gap: var(--space-2);
+    height: 100%;
+  }
+  .drill-title {
+    margin-top: var(--space-2);
+    font-size: var(--text-lg);
+    font-weight: 650;
+  }
+  .drill-subject .muted {
+    font-size: var(--text-sm);
+  }
+  .drill-start {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+    color: var(--accent);
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+</style>

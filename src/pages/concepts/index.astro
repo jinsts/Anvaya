@@ -1,70 +1,152 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import LessonCard from '../../components/learning/LessonCard.astro';
-import { getCatalog } from '../../lib/catalog';
-const { lessons } = await getCatalog();
+import PageHeader from '../../components/ui/PageHeader.astro';
+import Icon from '../../components/ui/Icon.astro';
 ---
 
-<BaseLayout title="Find a concept">
-  <header class="page-intro">
-    <span class="eyebrow">Find your way back</span>
-    <h1>
-      What are you
-      <br />
-      thinking about?
-    </h1>
-    <p class="lede">
-      Find a lesson by title, topic, or tag. The same ideas, wherever you first
-      met them.
+<BaseLayout title="Search">
+  <PageHeader
+    title="Search"
+    description="Find lessons, learning paths, subjects and practice across your library."
+    icon="search"
+  />
+  <form
+    class="search-form"
+    role="search"
+    aria-label="Library"
+    action="/concepts/"
+  >
+    <label for="search" class="sr-only">
+      Search the library
+    </label>
+    <Icon name="search" size={20} />
+    <input
+      id="search"
+      name="q"
+      type="search"
+      placeholder="Try arrays, collisions or amortized"
+      autocomplete="off"
+    />
+    <button id="clear-search" type="button" class="button-ghost" hidden>
+      Clear
+    </button>
+  </form>
+  <p id="search-status" class="muted" role="status"></p>
+  <ol id="results" class="results"></ol>
+  <div class="card empty-state" id="empty" hidden>
+    <h2>No matches yet</h2>
+    <p>
+      Try another word or a broader topic, or{' '}
+      <a href="/explore/">browse your subjects</a>.
     </p>
-  </header>
-  <label for="search">Search concepts</label>
-  <input id="search" type="search" placeholder="Try arrays, memory, or keys…" />
-  <p id="search-status" role="status" class="muted">
-    {lessons.length} lessons
-  </p>
-  <div class="card-grid" id="results">
-    {lessons.map((lesson) => (
-      <div
-        data-search={`${lesson.data.title} ${lesson.data.summary} ${lesson.data.tags.join(' ')}`.toLowerCase()}
-      >
-        <LessonCard lesson={lesson} />
-      </div>
-    ))}
   </div>
-  <p id="empty" hidden>
-    No matching lessons yet. Try another title or tag.
-  </p>
+  <noscript>
+    <p class="card">
+      Search needs JavaScript. <a href="/explore/">Browse subjects</a> or{' '}
+      <a href="/paths/">learning paths</a> instead.
+    </p>
+  </noscript>
 </BaseLayout>
 <script>
-  const input = document.querySelector<HTMLInputElement>('#search');
-  const cards = [...document.querySelectorAll<HTMLElement>('[data-search]')];
-  input?.addEventListener('input', () => {
-    const query = input.value.trim().toLowerCase();
-    let count = 0;
-    cards.forEach((card) => {
-      card.hidden = !card.dataset.search?.includes(query);
-      if (!card.hidden) count++;
-    });
-    const status = document.querySelector('#search-status');
-    if (status)
-      status.textContent = `${count} ${count === 1 ? 'lesson' : 'lessons'}`;
-    const empty = document.querySelector<HTMLElement>('#empty');
-    if (empty) empty.hidden = count > 0;
-  });
+  import { initSearch } from '../../scripts/search';
+  initSearch();
 </script>
 <style>
-  input {
-    display: block;
-    width: 100%;
-    max-width: 650px;
-    margin: 0.5rem 0 1rem;
-    padding: 0.9rem 1rem;
+  .search-form {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    color: var(--muted);
+    box-shadow: var(--shadow-sm);
   }
-  label {
-    font-size: 0.85rem;
+  .search-form:focus-within {
+    border-color: var(--accent);
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
   }
-  [hidden] {
-    display: none;
+  .search-form input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    font-size: var(--text-lg);
+  }
+  #search-status {
+    margin: var(--space-4) 0;
+    font-size: var(--text-sm);
+  }
+  .results {
+    display: grid;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .results :global(.result) {
+    padding: var(--space-4) var(--space-5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+  }
+  .results :global(.result-meta) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-1);
+    color: var(--muted);
+    font-size: var(--text-xs);
+  }
+  .results :global(h2) {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-lg);
+  }
+  .results :global(h2 a) {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .results :global(h2 a:hover) {
+    color: var(--accent);
+  }
+  .results :global(.excerpt) {
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+  .results :global(mark) {
+    padding: 0 0.1em;
+    border-radius: 3px;
+    background: var(--warning-soft);
+    color: var(--text);
+  }
+  .results :global(.sections) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: var(--space-3) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .results :global(.sections a) {
+    display: inline-flex;
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    text-decoration: none;
+  }
+  .results :global(.sections a:hover) {
+    border-color: var(--accent);
+  }
+  .empty-state h2 {
+    font-size: var(--text-lg);
+  }
+  .empty-state p {
+    margin: 0;
   }
 </style>
